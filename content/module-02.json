@@ -1,0 +1,154 @@
+{
+  "id": 2,
+  "title": "Master Data I — Business Partner (Supplier)",
+  "intro": "In S/4HANA every supplier is a Business Partner. This module covers how a supplier is structured, which data lives at which level, and how to create, change and block one.",
+  "objectives": [
+    "Explain why S/4HANA uses the Business Partner for suppliers",
+    "Distinguish BP categories, roles and groupings",
+    "Identify which data is held at general, company code and purchasing organisation level",
+    "Create, change and block a supplier with transaction BP"
+  ],
+  "lessons": [
+    {
+      "id": 1,
+      "title": "Why the Business Partner?",
+      "minutes": 30,
+      "body": "<p>In SAP ECC, suppliers (called <em>vendors</em>) and customers had separate master records and transactions (XK01, FK01, MK01…). In S/4HANA, the <strong>Business Partner (BP)</strong> is the single entry point for both.</p><ul><li>Transaction <code>BP</code> replaces the old vendor transactions, which now redirect to BP</li><li>One BP can be both a supplier and a customer, sharing one name and address</li><li><strong>Customer-Vendor Integration (CVI)</strong> runs in the background and keeps the classic supplier tables in sync, so older reports and processes still work</li></ul><h3>BP category: what kind of partner?</h3><ul><li><strong>Person</strong>: an individual</li><li><strong>Organisation</strong>: a company (most suppliers)</li><li><strong>Group</strong>: e.g. a married couple or joint venture</li></ul><p>The category is chosen at creation and <strong>can't be changed</strong> afterwards.</p><h3>BP role: what does the partner do for us?</h3><p>Roles add data views. For suppliers, three matter:</p><table><tr><th>Role</th><th>Name</th><th>Adds</th></tr><tr><td>000000</td><td>Business Partner (General)</td><td>Name, address, communication, bank, tax</td></tr><tr><td>FLVN00</td><td>FI Supplier</td><td>Company code data (accounting)</td></tr><tr><td>FLVN01</td><td>Supplier</td><td>Purchasing organisation data</td></tr></table><h3>BP grouping</h3><p>The <strong>grouping</strong> controls the <strong>number range</strong> (internal or external numbering) and, through CVI, the supplier account group. Typical groupings: domestic suppliers, foreign suppliers, one-time suppliers, employees.</p><p class='tip'>Learners coming from ECC often look for XK01. Show them it redirects to BP in the first five minutes, and the resistance drops.</p>",
+      "narration": "In the old SAP system, ECC, suppliers were called vendors, and they had their own master records and transactions, completely separate from customers. In S/4HANA, that changed. Every supplier and every customer is now a Business Partner, maintained with one transaction: B P. The old vendor transactions still exist, but they simply redirect you to B P. One business partner can even be a supplier and a customer at the same time, sharing a single name and address. Behind the scenes, something called Customer-Vendor Integration keeps the classic supplier tables in sync, so older reports keep working. When you create a business partner, you first choose a category. Person, for an individual. Organisation, for a company, which is what most suppliers are. Or group. Be careful: the category can't be changed later. Next, you add roles. Each role adds a set of data. For suppliers, three roles matter. The general role, zero zero zero zero zero zero, holds the name, address, bank and tax details. The role F L V N zero zero, F I Supplier, adds the accounting data for a company code. And the role F L V N zero one, Supplier, adds the purchasing data for a purchasing organisation. Finally, the grouping decides the number range, meaning whether the system assigns the number or you enter it yourself. A practical tip for class: learners coming from the old system always look for X K zero one. Show them early that it redirects to B P, and the resistance disappears.",
+      "keyTerms": [
+        ["Business Partner (BP)", "Single master record for suppliers and customers in S/4HANA"],
+        ["CVI", "Customer-Vendor Integration: syncs BP with classic supplier/customer tables"],
+        ["BP category", "Person, Organisation or Group; cannot be changed later"],
+        ["BP role", "Adds a data view, e.g. FLVN00 (FI Supplier), FLVN01 (Supplier)"],
+        ["BP grouping", "Controls number range and maps to the supplier account group"]
+      ],
+      "tryIt": [
+        { "task": "Type XK03 in SAP GUI and observe what happens." },
+        { "task": "Open BP, display an existing supplier and use the 'Display in BP role' dropdown to switch between 000000, FLVN00 and FLVN01. Note what changes on screen." }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "General data",
+      "minutes": 30,
+      "body": "<p>General data is <strong>shared across the whole client</strong>: every company code and purchasing organisation sees the same values.</p><h3>Main tabs (role 000000)</h3><ul><li><strong>Address</strong>: name, search terms, street, postcode, city, country, language, communication (phone, email)</li><li><strong>Address overview</strong>: additional addresses, e.g. a separate ordering or remittance address</li><li><strong>Identification</strong>: tax numbers (e.g. VAT registration number), industry, legal form</li><li><strong>Control</strong>: e.g. authorisation group, customer link</li><li><strong>Payment transactions</strong>: bank details (country, bank key, account / IBAN)</li><li><strong>Status</strong>: central blocks, archiving flag</li></ul><h3>Why it matters</h3><ul><li>The <strong>address and language</strong> decide what prints on purchase orders sent to the supplier</li><li><strong>Search terms</strong> are what users type to find the supplier, so agree a naming convention</li><li><strong>Bank details</strong> are used by the payment run in FI, which makes them sensitive. Many companies use dual control (one person changes, another approves)</li></ul><p class='tip'>Duplicate suppliers are the most common master data problem in real companies. Always search before you create.</p>",
+      "narration": "General data is shared across the whole client. Every company code and every purchasing organisation sees exactly the same values. In the general role, you'll find several tabs. Address holds the name, search terms, street, city, country, language and contact details. Address overview lets you add extra addresses, for example a separate ordering address. Identification holds tax numbers, such as the VAT registration number, plus industry and legal form. Payment transactions holds bank details, the bank country, bank key and account number or IBAN. And Status is where central blocks live. Why does this matter? The address and the language decide what appears on purchase orders sent to the supplier. Search terms are what users type to find the supplier, so it's worth agreeing a naming convention. And bank details feed the payment run in finance, so they're sensitive. Many companies insist on dual control, where one person changes bank details and another approves them. One last point to stress with learners: duplicate suppliers are the most common master data problem in real companies. Always search before you create.",
+      "keyTerms": [
+        ["General data", "Client-wide supplier data shared by all company codes and purchasing orgs"],
+        ["Search term", "Short text used to find the BP quickly"],
+        ["IBAN", "International bank account number, stored in Payment transactions"],
+        ["Dual control", "Sensitive changes (e.g. bank details) need confirmation by a second user"]
+      ],
+      "tryIt": [
+        { "task": "Search for suppliers with BP using a search term or city. Try the wildcard *, e.g. *PARIS*." },
+        { "task": "Display one supplier's Address, Identification and Payment transactions tabs and note what is filled in." }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Company code data (FI Supplier)",
+      "minutes": 30,
+      "body": "<p>Role <strong>FLVN00</strong> adds data <strong>per company code</strong>. A supplier used by two legal entities has two sets of company code data.</p><h3>Key fields</h3><ul><li><strong>Reconciliation account</strong> (mandatory): the G/L account in FI that collects all postings to this supplier, typically Accounts Payable – domestic or foreign</li><li><strong>Sort key</strong>: controls the default assignment field on line items</li><li><strong>Payment terms</strong>: used for invoices posted in FI</li><li><strong>Payment methods</strong>: e.g. bank transfer, cheque</li><li><strong>Check double invoice</strong>: warns if the same invoice is posted twice</li><li><strong>Posting block / payment block</strong></li></ul><h3>Why MM people need to know this</h3><p>When an invoice is posted in <code>MIRO</code>, the amount payable goes to the supplier account in this company code, and FI picks it up via the reconciliation account. Without FLVN00 data for the company code, <strong>the invoice can't be posted</strong>.</p><p class='tip'>Payment terms exist in both company code data and purchasing data. The PO normally takes them from the purchasing data, and the invoice takes them from the PO.</p>",
+      "narration": "The role F L V N zero zero, F I Supplier, adds data per company code. If two legal entities buy from the same supplier, there are two sets of company code data. The most important field is the reconciliation account, and it's mandatory. It's the general ledger account in finance that collects every posting to this supplier, usually accounts payable, domestic or foreign. You'll also find the sort key, payment terms, payment methods such as bank transfer, the check for double invoices, and posting and payment blocks. Why should MM people care about accounting data? Because when someone posts a supplier invoice in M I R O, the amount payable goes to this supplier's account in this company code. If the company code data doesn't exist, the invoice simply can't be posted. One subtle point: payment terms exist both here and in the purchasing data. The purchase order normally takes them from the purchasing data, and the invoice then takes them from the purchase order.",
+      "keyTerms": [
+        ["FLVN00", "FI Supplier role: company code (accounting) data"],
+        ["Reconciliation account", "G/L account collecting all postings for the supplier; mandatory"],
+        ["Payment terms", "Rules for due date and cash discount"],
+        ["Check double invoice", "Warns when the same invoice is entered twice"]
+      ],
+      "tryIt": [
+        { "task": "Display a supplier in role FLVN00 using the 'Company Code' button. Find the reconciliation account and payment terms." },
+        { "task": "Check whether the same supplier has data in more than one company code." }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Purchasing data and partner functions",
+      "minutes": 35,
+      "body": "<p>Role <strong>FLVN01</strong> adds data <strong>per purchasing organisation</strong>. Without it, you can't create a PO for this supplier in that purchasing org.</p><h3>Key purchasing fields</h3><ul><li><strong>Order currency</strong></li><li><strong>Payment terms</strong> and <strong>Incoterms</strong> (e.g. EXW, DAP, DDP): copied into the PO</li><li><strong>Minimum order value</strong></li><li><strong>Schema group</strong>: determines which pricing procedure is used (Module 8)</li><li><strong>GR-based invoice verification</strong>: invoices can only be matched to goods already received (Module 7)</li><li><strong>Order acknowledgement required</strong></li><li><strong>Automatic purchase order</strong>: allows requisitions to be converted to POs automatically</li><li><strong>Purchasing group</strong> and <strong>planned delivery time</strong> (defaults)</li></ul><h3>Partner functions</h3><p>A supplier can play different roles in one transaction. Partner functions link them:</p><table><tr><th>Code</th><th>Function</th><th>Example</th></tr><tr><td>VN</td><td>Supplier (vendor)</td><td>The main supplier</td></tr><tr><td>OA</td><td>Ordering address</td><td>Where the PO is sent</td></tr><tr><td>GS</td><td>Goods supplier</td><td>Who actually ships</td></tr><tr><td>PI</td><td>Invoicing party</td><td>Who sends the invoice and gets paid</td></tr></table><p>By default all four point to the supplier itself. You change them when, for example, a head office invoices but a regional depot delivers.</p><p class='tip'>Most PO defaults come from here. When a learner asks “where did this currency or these payment terms come from?”, the answer is almost always the purchasing data.</p>",
+      "narration": "The role F L V N zero one, Supplier, adds data per purchasing organisation. Without it, you can't create a purchase order for this supplier in that purchasing organisation. The key fields are: order currency; payment terms and Incoterms, such as ex works or delivered duty paid, which are copied into the purchase order; minimum order value; the schema group, which decides the pricing procedure, and we'll see that in module eight; G R based invoice verification, which means invoices can only be matched against goods already received; order acknowledgement required; and automatic purchase order, which allows requisitions to be turned into orders automatically. Then there are partner functions. In a single transaction, different companies can play different parts. V N is the supplier itself. O A is the ordering address, where the purchase order is sent. G S is the goods supplier, who actually ships. And P I is the invoicing party, who sends the invoice and gets paid. By default, all four point to the same supplier. You change them when, say, a head office invoices but a regional depot delivers. Here's the trainer takeaway: most defaults on a purchase order come from the purchasing data. When a learner asks where a currency or payment term came from, that's almost always the answer.",
+      "keyTerms": [
+        ["FLVN01", "Supplier role: purchasing organisation data"],
+        ["Incoterms", "International delivery terms, e.g. EXW, DAP, DDP"],
+        ["GR-based IV", "Invoice can only be matched to quantities already received"],
+        ["Schema group", "Supplier setting that helps determine the pricing procedure"],
+        ["Partner functions", "VN supplier, OA ordering address, GS goods supplier, PI invoicing party"]
+      ],
+      "tryIt": [
+        { "task": "Display a supplier in role FLVN01 using the 'Purchasing' button. Note the order currency, payment terms, Incoterms and GR-based IV flag." },
+        { "task": "Open the Partner Functions tab and check which partners are assigned." },
+        { "task": "Open an existing PO for that supplier (ME23N) and compare its currency, payment terms and Incoterms with the purchasing data." }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "One-time suppliers, blocking and changes",
+      "minutes": 35,
+      "body": "<h3>One-time suppliers</h3><ul><li>For suppliers you rarely use, creating a full master record is wasteful</li><li>A <strong>one-time supplier</strong> record (special grouping) is a generic account: the name, address and bank details are entered <strong>in each document</strong> instead</li></ul><h3>Blocking a supplier</h3><table><tr><th>Block</th><th>Effect</th></tr><tr><td>Purchasing block (purchasing org level)</td><td>No new POs in that purchasing org</td></tr><tr><td>Posting block (company code)</td><td>No FI postings, e.g. invoices</td></tr><tr><td>Payment block</td><td>Invoices can be posted but not paid</td></tr><tr><td>Central block</td><td>Blocks across all organisational levels</td></tr></table><p>Suppliers are rarely deleted. They're <strong>blocked</strong> first, then <strong>marked for deletion</strong> and archived later.</p><h3>Tracking changes</h3><ul><li>All changes are logged: in BP use <strong>Extras → Change history</strong> (menu names vary slightly by release)</li><li>Sensitive fields such as bank details can require <strong>dual control</strong></li></ul><h3>Full exercise: create a supplier end-to-end</h3><ol><li>BP → Create Organisation → choose the domestic supplier grouping</li><li>Role 000000: name, search term, address, language, VAT number, bank details</li><li>Switch to role FLVN00 → Company Code → enter your company code, reconciliation account, payment terms</li><li>Switch to role FLVN01 → Purchasing → enter your purchasing org, order currency, payment terms, Incoterms, GR-based IV</li><li>Save, note the BP number, then create a test PO for it in ME21N</li></ol><p class='tip'>This exercise is your best classroom activity for this module. Learners see straight away which missing data blocks the PO.</p>",
+      "narration": "Let's finish with special cases. For suppliers you'll only use once or twice, creating a full master record is wasteful. Instead, you use a one-time supplier. It's a generic account, and the actual name, address and bank details are typed into each document instead. Next, blocking. There are several kinds of block. A purchasing block, at purchasing organisation level, stops new purchase orders. A posting block, at company code level, stops accounting postings such as invoices. A payment block lets invoices be posted, but not paid. And a central block blocks the supplier everywhere. In practice, suppliers are almost never deleted straight away. They're blocked first, then marked for deletion, and archived later. All changes to a business partner are logged, and you can view them through the change history. Sensitive fields such as bank details can be protected with dual control. Now it's your turn. In the system, create a complete supplier: the general data, then company code data in role F L V N zero zero, then purchasing data in role F L V N zero one. Save it, note the number, and create a test purchase order for it. In class, this is the best exercise for the module, because learners immediately see which missing data blocks the purchase order.",
+      "keyTerms": [
+        ["One-time supplier", "Generic BP; address and bank entered in each document"],
+        ["Purchasing block", "Prevents new purchasing documents for the supplier"],
+        ["Posting block", "Prevents accounting postings in a company code"],
+        ["Payment block", "Invoices can be posted but not paid"],
+        ["Deletion flag", "Marks a supplier for later archiving"]
+      ],
+      "tryIt": [
+        { "task": "Do the full exercise above: create a supplier with all three roles, then create a test PO for it in ME21N." },
+        { "task": "Set a purchasing block on your new supplier, try to create another PO, note the message, then remove the block." },
+        { "task": "Trainer kit: write a one-page job aid 'Creating a supplier in BP' with screenshots of each step." }
+      ]
+    }
+  ],
+  "flashcards": [
+    ["Transaction to maintain suppliers in S/4HANA", "BP"],
+    ["What happens if you run XK01 in S/4HANA?", "It redirects to BP"],
+    ["What keeps BP in sync with classic supplier tables?", "CVI (Customer-Vendor Integration)"],
+    ["Three BP categories", "Person, Organisation, Group"],
+    ["Can the BP category be changed later?", "No"],
+    ["Role for general data", "000000 Business Partner (General)"],
+    ["Role for company code data", "FLVN00 FI Supplier"],
+    ["Role for purchasing data", "FLVN01 Supplier"],
+    ["What does the BP grouping control?", "Number range (and supplier account group via CVI)"],
+    ["Mandatory field in company code data", "Reconciliation account"],
+    ["Where do PO currency and Incoterms default from?", "Supplier purchasing data (FLVN01)"],
+    ["Partner function PI", "Invoicing party"],
+    ["Partner function OA", "Ordering address"],
+    ["Partner function GS", "Goods supplier"],
+    ["Supplier used only once?", "One-time supplier: address entered in the document"],
+    ["Block that allows posting but not paying", "Payment block"],
+    ["Usual end-of-life sequence for a supplier", "Block → deletion flag → archive"]
+  ],
+  "quiz": [
+    { "q": "In S/4HANA, which transaction is used to create a supplier?", "options": ["XK01", "MK01", "BP", "ME01"], "answer": 2, "explain": "BP is the single transaction for business partners. The old vendor transactions redirect to it." },
+    { "q": "Which BP role holds purchasing organisation data?", "options": ["000000", "FLVN00", "FLVN01", "FLCU01"], "answer": 2, "explain": "FLVN01 (Supplier) holds purchasing data. FLVN00 holds company code data; FLCU01 is a customer role." },
+    { "q": "Which field is mandatory in the supplier's company code data?", "options": ["Incoterms", "Reconciliation account", "Order currency", "Schema group"], "answer": 1, "explain": "The reconciliation account links the supplier to the general ledger and is required." },
+    { "q": "What does the BP grouping control?", "options": ["The pricing procedure", "The number range", "The payment run", "The reconciliation account"], "answer": 1, "explain": "The grouping determines internal or external numbering and maps to the supplier account group." },
+    { "q": "A head office sends invoices but a depot ships the goods. Which partner functions differ?", "options": ["VN and OA", "PI and GS", "OA and VN", "None"], "answer": 1, "explain": "PI (invoicing party) is the head office; GS (goods supplier) is the depot." },
+    { "q": "Where does a new PO normally take its order currency from?", "options": ["Company code data", "General data", "Purchasing org data of the supplier", "The material master"], "answer": 2, "explain": "Order currency, payment terms and Incoterms default from the supplier's purchasing data." },
+    { "q": "Which statement about the BP category is true?", "options": ["It can be changed at any time", "It cannot be changed after creation", "It controls the reconciliation account", "It is only used for customers"], "answer": 1, "explain": "Person, Organisation or Group is fixed once the BP is created." },
+    { "q": "A supplier should still receive POs but must not be paid for now. Which block?", "options": ["Purchasing block", "Central block", "Payment block", "Deletion flag"], "answer": 2, "explain": "A payment block allows invoices to be posted but stops payment." },
+    { "q": "Why might an invoice fail to post for a supplier that exists in BP?", "options": ["No FLVN00 data for that company code", "No search term", "No Incoterms", "Wrong BP category"], "answer": 0, "explain": "Invoice posting needs the supplier's company code data, including the reconciliation account." },
+    { "q": "When is a one-time supplier appropriate?", "options": ["For your main raw material supplier", "For a supplier used very rarely", "For intercompany purchases", "For all foreign suppliers"], "answer": 1, "explain": "One-time suppliers avoid creating full master records for rarely used suppliers." }
+  ],
+  "trainerNotes": {
+    "howToTeach": [
+      "Start with a quick 'why BP' story: one partner, many roles",
+      "Draw three layers on the board: general → company code → purchasing org, then map each tab to a layer",
+      "Use the end-to-end creation exercise; let learners hit the error when a role is missing"
+    ],
+    "commonMistakes": [
+      "Forgetting to switch roles, so company code or purchasing data is never created",
+      "Creating duplicates instead of searching first",
+      "Editing bank details without following the company's dual-control process",
+      "Confusing payment terms in company code data with those in purchasing data"
+    ],
+    "demoScript": [
+      "Run XK03 to show the redirect to BP",
+      "Search for an existing supplier and walk through roles 000000, FLVN00 and FLVN01",
+      "Create a new supplier live with all three roles",
+      "Create a PO in ME21N and show the defaults coming from FLVN01",
+      "Set and remove a purchasing block"
+    ]
+  }
+}

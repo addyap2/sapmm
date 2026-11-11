@@ -4,7 +4,7 @@
   "author": "Antony Addy",
   "modules": [
     { "id": 1, "title": "Foundations & Organisational Structure", "week": "Week 1", "file": "module-01.json" },
-    { "id": 2, "title": "Master Data I — Business Partner (Supplier)", "week": "Week 1–2", "file": null },
+    { "id": 2, "title": "Master Data I — Business Partner (Supplier)", "week": "Week 1–2", "file": "module-02.json" },
     { "id": 3, "title": "Master Data II — Product, Info Records, Source Lists", "week": "Week 2", "file": null },
     { "id": 4, "title": "The Procure-to-Pay Cycle", "week": "Week 3", "file": null },
     { "id": 5, "title": "Purchasing in Depth", "week": "Week 3–4", "file": null },
