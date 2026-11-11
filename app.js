@@ -174,7 +174,44 @@
       <a class="card row" href="#/m/${id}/cards"><span><strong>🃏 Flashcards</strong><br><span class="small muted">${mastered}/${m.flashcards.length} mastered</span></span><span class="pill">Study</span></a>
       <a class="card row" href="#/m/${id}/quiz"><span><strong>✅ Quiz</strong><br><span class="small muted">${m.quiz.length} questions · pass mark 76%</span></span><span class="pill ${q != null ? '' : 'amber'}">${q != null ? `Best ${Math.round(q / m.quiz.length * 100)}%` : 'Not taken'}</span></a>
       <a class="card row" href="#/m/${id}/notes"><span><strong>🎤 Trainer notes</strong><br><span class="small muted">How to teach it, mistakes, demo script</span></span><span class="pill">Kit</span></a>
+      ${'caches' in window ? `<div class="card offline" id="offline"><span style="flex:1"><strong>⬇ Offline audio</strong><br><span class="small muted" id="offMsg" aria-live="polite">Checking…</span></span><button class="btn" id="offBtn" hidden>Download</button></div>` : ''}
       <div class="actions">${id > 1 ? `<a class="btn ghost" href="#/m/${id - 1}">← Module ${id - 1}</a>` : ''}${getMod(id + 1) ? `<a class="btn ghost" href="#/m/${id + 1}">Module ${id + 1} →</a>` : ''}</div>`;
+    if ('caches' in window) setupOffline(m).catch(() => {});
+  }
+
+  // ---------- offline audio per module ----------
+  const AUDIO_CACHE = 'sapmm-audio';
+  const audioSrc = (mid, lid) => `audio/m${pad(mid)}-l${pad(lid)}.mp3`;
+  async function setupOffline(m) {
+    const msg = $('#offMsg'), btn = $('#offBtn'); if (!msg) return;
+    const files = m.lessons.map(l => new URL(audioSrc(m.id, l.id), location.href).href);
+    const cache = await caches.open(AUDIO_CACHE);
+    const status = async () => {
+      let n = 0, bytes = 0;
+      for (const f of files) { const r = await cache.match(f); if (r) { n++; bytes += +(r.headers.get('content-length') || 0); } }
+      return { n, mb: (bytes / 1048576).toFixed(1) };
+    };
+    const refresh = async () => {
+      const s = await status(); if (!btn.isConnected) return;
+      btn.hidden = false; btn.disabled = false;
+      if (s.n === files.length) { msg.textContent = `✓ Saved on this device · ${s.mb} MB`; btn.textContent = 'Remove'; btn.className = 'btn ghost'; btn.onclick = remove; }
+      else { msg.textContent = `Listen without internet (${files.length} lessons)`; btn.textContent = 'Download'; btn.className = 'btn'; btn.onclick = download; }
+    };
+    const download = async () => {
+      btn.disabled = true; let i = 0;
+      try {
+        for (const f of files) {
+          msg.textContent = `Downloading ${++i} of ${files.length}…`;
+          if (await cache.match(f)) continue;
+          const r = await fetch(f, { cache: 'no-store' }); if (!r.ok) throw new Error(r.status);
+          await cache.put(f, r);
+        }
+        toast(`⬇ Module ${m.id} audio saved for offline`);
+      } catch { toast('Download failed. Check your connection'); }
+      refresh();
+    };
+    const remove = async () => { for (const f of files) await cache.delete(f); toast('Offline audio removed'); refresh(); };
+    refresh();
   }
 
   let audioCleanup = null;
@@ -199,13 +236,13 @@
       </div>
       <article class="lesson">${l.body}</article>
       <h2>Key terms <span class="small muted">· tap to reveal</span></h2>
-      <div class="terms">${l.keyTerms.map(([t, d]) => `<button class="term">${esc(t)}<small hidden>${esc(d)}</small></button>`).join('')}</div>
+      <div class="terms">${l.keyTerms.map(([t, d]) => `<button class="term" aria-expanded="false">${esc(t)}<small hidden>${esc(d)}</small></button>`).join('')}</div>
       <h2>Try it in the system</h2>
       <div class="card">${l.tryIt.map((t, i) => `<label class="check"><input type="checkbox" data-c="${k}t${i}" ${S.checks[`${k}t${i}`] ? 'checked' : ''}><span>${esc(t.task)}</span></label>`).join('')}</div>
       <div class="actions">${prev ? `<a class="btn ghost" href="#/m/${mid}/l/${prev.id}">← Previous</a>` : ''}</div>
       <div class="sticky-cta"><div class="inner"><button class="btn" id="doneBtn">${S.done[k] ? (next ? 'Next lesson →' : 'Take the quiz →') : (next ? '✓ Complete & continue' : '✓ Complete & take quiz')}</button></div></div>`;
 
-    $$('.term').forEach(b => b.onclick = () => { const s = b.querySelector('small'); s.hidden = !s.hidden; b.classList.toggle('open', !s.hidden); });
+    $$('.term').forEach(b => b.onclick = () => { const s = b.querySelector('small'); s.hidden = !s.hidden; b.classList.toggle('open', !s.hidden); b.setAttribute('aria-expanded', String(!s.hidden)); });
     $$('.check input').forEach(c => c.onchange = () => { S.checks[c.dataset.c] = c.checked; save(); if (c.checked) toast('Nice, task done ✓'); });
     $('#doneBtn').onclick = () => {
       if (!S.done[k]) {
@@ -327,7 +364,7 @@
       app.innerHTML = `<a class="crumb" href="${back}">← Back</a>
         <div class="row"><h1 style="margin:0">${global ? 'Review' : `Module ${mid} cards`}</h1><span class="small muted">${i + 1} / ${deck.length}</span></div>
         ${boxBar()}
-        <div class="flip" id="flip"><div class="flip-inner" id="fi">
+        <div class="flip" id="flip"><div class="flip-inner" id="fi" role="button" tabindex="0" aria-label="Flashcard: press Enter to flip">
           <div class="face front"><small>${global ? `Module ${c.m.id}` : 'Question'}</small>${esc(c.f)}<span class="small muted" style="position:absolute;bottom:14px;font-weight:600">Tap to flip</span></div>
           <div class="face back"><small>Answer</small>${esc(c.b)}</div></div></div>
         <div class="rate" id="rate" style="visibility:hidden"><button class="btn again" id="again">✗ Again</button><button class="btn" id="good">✓ Got it</button></div>
@@ -335,6 +372,8 @@
       const flip = $('#flip'), fi = $('#fi');
       const show = () => { flip.classList.add('flipped'); $('#rate').style.visibility = 'visible'; };
       fi.onclick = () => { flip.classList.contains('flipped') ? flip.classList.remove('flipped') : show(); };
+      fi.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fi.click(); } else if (flip.classList.contains('flipped') && e.key === 'ArrowRight') rate(true); else if (flip.classList.contains('flipped') && e.key === 'ArrowLeft') rate(false); };
+      fi.focus({ preventScroll: true });
       const rate = ok => {
         S.boxes[c.id] = ok ? Math.min(4, (S.boxes[c.id] ?? 0) + 1) : 0; if (ok) known++; save();
         fi.classList.add(ok ? 'swipe-out-r' : 'swipe-out-l');
@@ -422,7 +461,7 @@
     $('#readbar').style.width = 0;
     const p = location.hash.replace(/^#\/?/, '').split('/');
     const tab = { '': 'home', modules: 'modules', m: 'modules', review: 'review', glossary: 'glossary', stats: 'stats', quick: 'home' }[p[0]] || 'home';
-    $$('.tabbar a').forEach(a => a.classList.toggle('active', a.dataset.tab === tab));
+    $$('.tabbar a').forEach(a => { const on = a.dataset.tab === tab; a.classList.toggle('active', on); on ? a.setAttribute('aria-current', 'page') : a.removeAttribute('aria-current'); });
     app.style.animation = 'none'; void app.offsetWidth; app.style.animation = '';
     if (p[0] === 'm' && p[1]) {
       const m = +p[1];
@@ -438,6 +477,7 @@
     else if (p[0] === 'stats') statsView();
     else home();
     window.scrollTo(0, 0);
+    const h1 = app.querySelector('h1'); if (h1) document.title = `${h1.textContent} · SAP MM`;
   }
 
   async function init() {
