@@ -1,0 +1,129 @@
+{
+  "id": 9,
+  "title": "MRP Basics, Special Procurement & Valuation",
+  "intro": "How the system plans what to buy, the special procurement processes (subcontracting, consignment, stock transfers, third-party), and how stock is valued.",
+  "objectives": [
+    "Explain MRP types, lot sizes and the MRP run",
+    "Read the stock/requirements list",
+    "Process subcontracting, consignment, stock transport and third-party orders",
+    "Explain standard vs moving average valuation and the material ledger"
+  ],
+  "lessons": [
+    {
+      "id": 1,
+      "title": "MRP basics",
+      "minutes": 40,
+      "body": "<p><strong>Material Requirements Planning (MRP)</strong> makes sure materials are available on time while keeping stock low. For purchased materials it creates <strong>purchase requisitions</strong> (or schedule lines).</p><h3>MRP types (MRP 1 view)</h3><table><tr><th>Type</th><th>Meaning</th></tr><tr><td>PD</td><td>MRP: plans against actual requirements (orders, forecasts)</td></tr><tr><td>VB</td><td>Manual reorder point planning</td></tr><tr><td>VM</td><td>Automatic reorder point planning</td></tr><tr><td>ND</td><td>No planning</td></tr></table><h3>Reorder point</h3><p>When stock falls below the <strong>reorder point</strong>, a requisition is created.<br>Reorder point = safety stock + (average daily consumption × replenishment lead time). Example: 20 + (10 × 5) = 70 units.</p><h3>Lot sizes</h3><ul><li><strong>EX</strong> lot-for-lot: order exactly the shortage</li><li><strong>FX</strong> fixed lot size</li><li><strong>HB</strong> replenish up to maximum stock</li><li>Period lot sizes (daily, weekly, monthly)</li></ul><h3>Running and reading MRP</h3><ul><li><code>MD01N</code> MRP Live (S/4HANA, fast, runs on HANA)</li><li><code>MD03</code> single-item planning</li><li><code>MD04</code> <strong>stock/requirements list</strong>: live view of stock, requirements and receipts</li><li>Fiori: <em>Monitor Material Coverage</em>, <em>Manage Material Coverage</em></li></ul><p>Procurement type F + MRP = requisition (creation indicator); for in-house materials MRP creates planned orders.</p><p class='tip'>MD04 is the planner's home screen. Teach learners to read it line by line: date, MRP element, receipt/requirement, available quantity.</p>",
+      "narration": "Material requirements planning, or M R P, makes sure materials are available on time while keeping stock as low as possible. For purchased materials, it creates purchase requisitions or schedule lines. The M R P type in the material master decides how a material is planned. P D is M R P proper, planning against actual requirements such as orders and forecasts. V B is manual reorder point planning, V M is automatic reorder point planning, and N D means no planning. With reorder point planning, when stock falls below the reorder point, a requisition is created. The reorder point equals safety stock plus average daily consumption multiplied by the replenishment lead time. For example, twenty plus ten times five gives seventy units. The lot size decides how much to order. E X, lot for lot, orders exactly the shortage. F X is a fixed lot size. H B replenishes up to a maximum stock level. And there are period lot sizes, such as weekly or monthly. In S/4HANA, you run planning with M D zero one N, M R P Live, which is very fast because it runs inside the HANA database. M D zero three plans a single item. And M D zero four, the stock requirements list, gives a live view of stock, requirements and receipts. M D zero four is the planner's home screen, so teach learners to read it line by line.",
+      "keyTerms": [
+        ["MRP type PD / VB / VM / ND", "MRP / manual reorder point / automatic reorder point / no planning"],
+        ["Reorder point", "Safety stock + daily consumption × lead time"],
+        ["Lot size EX / FX / HB", "Lot-for-lot / fixed / replenish to maximum"],
+        ["MD01N", "MRP Live"],
+        ["MD04", "Stock/requirements list"]
+      ],
+      "tryIt": [
+        { "task": "Set your material to MRP type VB with reorder point 70 and lot size EX (MM02, MRP 1). Reduce stock below 70 with a 201 issue." },
+        { "task": "Run MD03 for the material and check MD04 for the new requisition." }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Subcontracting and consignment",
+      "minutes": 40,
+      "body": "<h3>Subcontracting (item category L)</h3><p>You send components to a supplier, who processes them into a finished item and charges for the work.</p><ol><li>Material has a <strong>BOM</strong> (components); info record of category subcontracting holds the processing price</li><li>Create PO with item category <strong>L</strong>; components are listed on the item</li><li>Send components: movement <strong>541</strong> (to stock provided to supplier, special stock <strong>O</strong>)</li><li>Monitor: <code>ME2O</code> subcontracting stock monitor</li><li>GR of finished item: <strong>101</strong>; components consumed automatically with <strong>543</strong></li><li>Invoice for the service charge</li></ol><h3>Consignment (item category K)</h3><p>Supplier's goods are stored at your site; you pay only when you use them.</p><ol><li>Consignment info record holds the price</li><li>PO with item category <strong>K</strong> (no price on PO); GR 101 into special stock <strong>K</strong>, not valuated</li><li>Withdraw: e.g. <strong>201 K</strong> to cost centre or transfer <strong>411 K</strong> to own stock: this creates a liability to the supplier</li><li>Settle with <code>MRKO</code>: lists withdrawals and creates the invoice (settlement)</li></ol><p class='tip'>Consignment is easy to sell to managers: 'stock on your shelves, cash in their bank until you use it'.</p>",
+      "narration": "In subcontracting, you send components to a supplier, who processes them into a finished item and charges you for the work. The finished material has a bill of materials listing the components, and a subcontracting info record holds the processing price. You create a purchase order with item category L, and the components are listed on the item. You send the components with movement type five four one, which moves them into stock provided to the supplier, special stock O. You can monitor that stock with M E two O. When the finished item arrives, you post goods receipt one zero one, and the components are consumed automatically with five four three. Then the supplier invoices you for the service. In consignment, the supplier's goods are stored at your site, and you only pay when you use them. A consignment info record holds the price. The purchase order has item category K and no price. Goods receipt puts the goods into consignment stock, special stock K, which isn't in your stock value. When you withdraw goods, for example two zero one K to a cost centre, or four one one K to your own stock, you create a liability to the supplier. And you settle those withdrawals with M R K O, which creates the settlement invoice. Consignment is easy to sell to managers: stock on your shelves, but cash in their bank until you use it.",
+      "keyTerms": [
+        ["541", "Transfer components to subcontractor (special stock O)"],
+        ["543", "Consumption of components at subcontracting GR"],
+        ["ME2O", "Subcontracting stock monitor"],
+        ["411 K", "Consignment stock → own stock"],
+        ["MRKO", "Consignment settlement"]
+      ],
+      "tryIt": [
+        { "task": "If your system has a material with a subcontracting BOM, create an L item PO, post 541 for components, then 101 for the finished item, and check MB51 for 543." },
+        { "task": "Create a consignment PO (item category K), post GR, withdraw with 201 K, then run MRKO." }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Stock transport orders and third-party",
+      "minutes": 30,
+      "body": "<h3>Stock transport orders (STO)</h3><ul><li>Transfer between your own plants with planning and tracking</li><li>PO document type <strong>UB</strong>, item category <strong>U</strong>, supplying plant instead of supplier</li><li>With delivery: outbound delivery (<code>VL10B</code>), GI <strong>641</strong> → stock in transit (<code>MB5T</code>), GR <strong>101</strong> at receiving plant</li><li>Cross-company STOs (document type NB) can include billing and invoicing</li></ul><h3>Third-party orders (item category S)</h3><ul><li>A customer sales order creates a PR with item category S</li><li>The supplier ships <strong>directly to the customer</strong>; your company never holds the stock</li><li>GR can be statistical (optional); invoice received from supplier; billing to customer in SD</li></ul><h3>Pipeline</h3><p>Materials like water or gas, always available, settled by consumption (MRKO), no PO or GR.</p><p class='tip'>Draw goods flow vs document flow for third-party orders. Learners grasp it once they see the goods never touch your warehouse.</p>",
+      "narration": "A stock transport order transfers goods between your own plants, with planning and tracking. It's a purchase order with document type U B and item category U, and instead of a supplier you enter the supplying plant. With a delivery, the supplying plant creates an outbound delivery with V L one zero B and posts goods issue six four one, which puts the stock in transit. You can see it with M B five T. The receiving plant then posts goods receipt one zero one. Between different company codes, you can use cross-company stock transport orders, which can include billing and invoicing. A third-party order is different. A customer's sales order creates a requisition with item category S, and the supplier ships directly to the customer. Your company never holds the stock. The goods receipt can be just statistical, the supplier invoices you, and sales bills the customer. Finally, pipeline materials, like water or gas, are always available, have no purchase order or goods receipt, and are settled by consumption with M R K O. To teach third-party orders, draw the goods flow and the document flow separately. Learners get it once they see the goods never touch your warehouse.",
+      "keyTerms": [
+        ["STO (UB)", "Stock transport order between plants"],
+        ["641", "GI for stock transport order with delivery → stock in transit"],
+        ["MB5T", "Stock in transit report"],
+        ["Third-party (S)", "Supplier delivers directly to your customer"],
+        ["Pipeline", "Always-available material settled by consumption"]
+      ],
+      "tryIt": [
+        { "task": "If your system has two plants, create an STO (ME21N, document type UB), create the delivery, post GI and GR, and check MB5T in between." }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Valuation and the material ledger",
+      "minutes": 35,
+      "body": "<h3>Price control recap</h3><ul><li><strong>S (standard)</strong>: fixed price; differences to PRD. Typical for manufactured goods (FERT, HALB)</li><li><strong>V (moving average)</strong>: price recalculated at each receipt. Typical for purchased goods (ROH, HAWA)</li></ul><h3>Moving average example</h3><p>Stock 100 units, value €1,000 (MAP €10). GR 50 units at €13 = €650.<br>New stock 150 units, value €1,650 → <strong>MAP €11</strong>.</p><h3>Changing prices</h3><ul><li><code>MR21</code> price change (standard or moving average), posts revaluation</li><li>Standard price for the future via costing (CO)</li></ul><h3>Material ledger</h3><ul><li><strong>Mandatory in S/4HANA</strong> for inventory valuation: values stock in multiple currencies/valuations</li><li><strong>Actual costing</strong> (period-end distribution of price differences to stock and consumption) is optional</li></ul><h3>Split valuation</h3><p>One material valued separately by <strong>valuation type</strong>, e.g. by origin (domestic/imported), batch or condition (new/repaired).</p><p class='tip'>The MAP example is a perfect five-minute whiteboard exercise; let learners calculate before revealing.</p>",
+      "narration": "Let's recap price control. With S, standard price, the price is fixed and differences go to the price difference account. It's typical for manufactured goods. With V, moving average price, the price is recalculated at each receipt. It's typical for purchased goods. Here's a moving average example. You have one hundred units in stock, worth one thousand euros, so the moving average price is ten euros. You receive fifty units at thirteen euros, worth six hundred and fifty. Now you have one hundred and fifty units worth one thousand six hundred and fifty euros, so the new moving average price is eleven euros. To change a price, you use M R two one, which posts a revaluation. Standard prices for the future are usually set through product costing in Controlling. In S/4HANA, the material ledger is mandatory for inventory valuation, allowing stock to be valued in multiple currencies. Actual costing, which redistributes price differences at period end, is optional. Finally, split valuation lets one material be valued separately by valuation type, for example by origin, batch, or condition such as new versus repaired. The moving average example makes a perfect five-minute whiteboard exercise: let learners calculate before you reveal the answer.",
+      "keyTerms": [
+        ["Moving average price (MAP)", "Total stock value ÷ total stock quantity"],
+        ["MR21", "Material price change"],
+        ["Material ledger", "Mandatory in S/4HANA; multi-currency inventory valuation"],
+        ["Actual costing", "Optional period-end revaluation using actual prices"],
+        ["Split valuation", "Separate valuation by valuation type (origin, batch, condition)"]
+      ],
+      "tryIt": [
+        { "task": "For a V-price material, note stock and MAP in MM03, post a GR at a different price and recalculate the MAP yourself before checking." },
+        { "task": "Trainer kit: write an MRP walkthrough from MD04 to PR to PO." }
+      ]
+    }
+  ],
+  "flashcards": [
+    ["MRP type for automatic reorder point", "VM"],
+    ["MRP type for no planning", "ND"],
+    ["Reorder point formula", "Safety stock + daily consumption × lead time"],
+    ["Lot-for-lot lot size", "EX"],
+    ["MRP Live transaction", "MD01N"],
+    ["Stock/requirements list", "MD04"],
+    ["Components to subcontractor", "541"],
+    ["Component consumption at subcontracting GR", "543"],
+    ["Subcontracting stock monitor", "ME2O"],
+    ["Consignment → own stock", "411 K"],
+    ["Consignment settlement", "MRKO"],
+    ["STO GI to stock in transit", "641"],
+    ["Stock in transit report", "MB5T"],
+    ["Price change transaction", "MR21"],
+    ["Is the material ledger mandatory in S/4HANA?", "Yes (actual costing optional)"]
+  ],
+  "quiz": [
+    { "q": "Safety stock 20, consumption 10/day, lead time 5 days. Reorder point?", "options": ["50", "70", "100", "30"], "answer": 1, "explain": "20 + 10 × 5 = 70." },
+    { "q": "Which lot size orders exactly the shortage quantity?", "options": ["FX", "HB", "EX", "WB"], "answer": 2, "explain": "EX = lot-for-lot." },
+    { "q": "Which transaction shows the live stock/requirements situation?", "options": ["MD01N", "MD04", "MMBE", "ME2M"], "answer": 1, "explain": "MD04 is the stock/requirements list." },
+    { "q": "Components sent to a subcontractor are in special stock…", "options": ["K", "E", "O", "Q"], "answer": 2, "explain": "O = material provided to supplier." },
+    { "q": "When is consignment stock paid for?", "options": ["At PO creation", "At goods receipt", "When withdrawn from consignment stock", "Never"], "answer": 2, "explain": "Withdrawal creates the liability; MRKO settles it." },
+    { "q": "Stock 100 units at €10; GR 50 units at €13. New moving average price?", "options": ["€11", "€11.50", "€13", "€10"], "answer": 0, "explain": "(1,000 + 650) ÷ 150 = €11." },
+    { "q": "In a third-party order, who receives the goods?", "options": ["Your warehouse", "The customer directly", "The subcontractor", "The supplying plant"], "answer": 1, "explain": "Item category S: the supplier delivers to your customer." },
+    { "q": "Which statement about the material ledger in S/4HANA is correct?", "options": ["It is optional", "It is mandatory; actual costing is optional", "It replaces MRP", "It is only for sales"], "answer": 1, "explain": "The material ledger is mandatory for valuation; actual costing remains optional." }
+  ],
+  "trainerNotes": {
+    "howToTeach": [
+      "Use MD04 as the visual anchor for MRP",
+      "Draw goods flow vs document flow for subcontracting, consignment and third-party",
+      "Calculate MAP on the board before showing the system"
+    ],
+    "commonMistakes": [
+      "Expecting a price on a consignment PO",
+      "Forgetting to send components (541) before subcontracting GR",
+      "Confusing reorder point planning with MRP (PD)"
+    ],
+    "demoScript": [
+      "MM02: set VB + reorder point; MIGO 201 below reorder point",
+      "MD03 then MD04: show the new PR",
+      "Consignment: PO K → GR → 201 K → MRKO",
+      "MAP calculation on a V material"
+    ]
+  }
+}

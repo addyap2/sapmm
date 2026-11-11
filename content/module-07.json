@@ -1,0 +1,150 @@
+{
+  "id": 7,
+  "title": "Invoice Verification & FI Integration",
+  "intro": "How MM postings reach the general ledger automatically, how invoices are matched and blocked, and how the GR/IR account is managed.",
+  "objectives": [
+    "Explain automatic account determination and the main transaction keys",
+    "Predict the accounting entries for GR and invoice with price control S and V",
+    "Post, park and correct invoices in MIRO",
+    "Handle tolerances, blocked invoices and GR/IR clearing"
+  ],
+  "lessons": [
+    {
+      "id": 1,
+      "title": "Automatic account determination",
+      "minutes": 40,
+      "body": "<p>MM users never enter G/L accounts for stock movements. The system finds them automatically using:</p><ul><li><strong>Chart of accounts</strong> (from the company code)</li><li><strong>Valuation grouping code</strong> (from the plant/valuation area)</li><li><strong>Transaction key</strong> (from the movement type)</li><li><strong>Account modifier</strong> (refines some keys)</li><li><strong>Valuation class</strong> (from the material master)</li></ul><p>Configured in <code>OBYC</code> (FI/MM consultants); simulate with <code>OMWB</code>.</p><h3>Main transaction keys</h3><table><tr><th>Key</th><th>Account</th></tr><tr><td>BSX</td><td>Inventory (stock) account</td></tr><tr><td>WRX</td><td>GR/IR clearing account</td></tr><tr><td>PRD</td><td>Price differences</td></tr><tr><td>GBB</td><td>Offsetting entry for inventory posting, e.g. consumption (modifier VBR), scrapping (VNG), inventory differences (INV)</td></tr><tr><td>KBS</td><td>Account-assigned purchases (e.g. cost centre)</td></tr></table><p class='tip'>As a trainer you don't configure OBYC, but explaining “valuation class + movement type = G/L account” wins over finance teams in class.</p>",
+      "narration": "MM users never type a general ledger account for a stock movement. The system finds the account automatically, using a few ingredients: the chart of accounts, from the company code; the valuation grouping code, from the plant; the transaction key, from the movement type; sometimes an account modifier; and the valuation class, from the material master. This is configured in O B Y C, usually by consultants, and you can simulate it with O M W B. The transaction keys to know are: B S X, the inventory account; W R X, the G R I R clearing account; P R D, price differences; G B B, the offsetting entry for inventory postings, for example consumption, scrapping, or inventory differences, distinguished by an account modifier; and K B S, for account-assigned purchases such as a cost centre. As a trainer, you won't configure O B Y C. But being able to say that valuation class plus movement type equals general ledger account will win over any finance team in your class.",
+      "keyTerms": [
+        ["OBYC", "Configuration of automatic account determination"],
+        ["BSX", "Inventory account"],
+        ["WRX", "GR/IR clearing account"],
+        ["PRD", "Price difference account"],
+        ["GBB", "Offsetting entry for inventory postings (consumption, scrapping…)"]
+      ],
+      "tryIt": [
+        { "task": "Display the accounting document of a GR (MIGO → Doc. info → FI documents) and identify the inventory and GR/IR accounts." },
+        { "task": "If you have access, run OMWB to simulate account determination for movement type 101 and your material." }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "GR/IR and price differences: S vs V",
+      "minutes": 40,
+      "body": "<h3>Example</h3><p>PO for 10 units at €12. Material standard price: €10.</p><h3>Price control S (standard price)</h3><table><tr><th>Step</th><th>Debit</th><th>Credit</th></tr><tr><td>GR</td><td>Inventory (BSX) 100 + Price diff. (PRD) 20</td><td>GR/IR (WRX) 120</td></tr><tr><td>Invoice at €12</td><td>GR/IR 120</td><td>Supplier 120</td></tr><tr><td>Invoice at €13 instead</td><td>GR/IR 120 + PRD 10</td><td>Supplier 130</td></tr></table><p>Stock always stays at the standard price; every difference goes to PRD.</p><h3>Price control V (moving average)</h3><table><tr><th>Step</th><th>Debit</th><th>Credit</th></tr><tr><td>GR</td><td>Inventory 120</td><td>GR/IR 120</td></tr><tr><td>Invoice at €13 (stock still on hand)</td><td>GR/IR 120 + Inventory 10</td><td>Supplier 130</td></tr></table><p>The difference goes to stock and the moving average price changes. If the stock has already been consumed, the difference goes to PRD instead.</p><h3>GR/IR: the waiting room</h3><ul><li>Credited at GR, debited at invoice</li><li>A balance means goods received but not invoiced, or invoiced but not received</li><li>Analyse with <code>MB5S</code>; clear old differences with <code>MR11</code></li></ul><p class='tip'>Work through this example on paper with learners before showing the system. Then MIRO results stop being a mystery.</p>",
+      "narration": "Let's work through an example. A purchase order for ten units at twelve euros each, for a material with a standard price of ten euros. With price control S, standard price, stock is always valued at the standard price. At goods receipt, inventory is debited one hundred, the price difference account is debited twenty, and G R I R is credited one hundred and twenty. If the invoice comes in at twelve euros, G R I R is debited one hundred and twenty and the supplier credited the same. If instead the invoice says thirteen euros, the extra ten goes to price differences too. Now with price control V, moving average price. At goods receipt, inventory is debited one hundred and twenty, at the purchase order price, and G R I R credited one hundred and twenty. If the invoice says thirteen euros, and the stock is still on hand, the extra ten goes to inventory, and the moving average price goes up. If the stock has already been consumed, the difference goes to price differences instead. And the G R I R account? Think of it as a waiting room: credited at goods receipt, debited at invoice. A balance means goods received but not invoiced, or invoiced but not received. Work through this example on paper with learners before you show the system, and invoice postings stop being a mystery.",
+      "keyTerms": [
+        ["Price difference (S)", "Difference between PO/invoice price and standard price → PRD"],
+        ["Moving average update (V)", "Invoice differences adjust stock value if stock is on hand"],
+        ["MB5S", "GR/IR balance list"],
+        ["MR11", "GR/IR account maintenance (clearing small differences)"]
+      ],
+      "tryIt": [
+        { "task": "For a material with price control S, create a PO at a price different from the standard price, post the GR and find the PRD line in the accounting document." },
+        { "task": "Repeat with a V material and check the moving average price in MM03 before and after." }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "MIRO in practice",
+      "minutes": 35,
+      "body": "<h3>Header</h3><ul><li><strong>Transaction</strong>: Invoice, Credit memo, Subsequent debit, Subsequent credit</li><li>Invoice date, posting date, <strong>reference</strong> (supplier's invoice number), amount, tax code / <em>Calculate tax</em></li><li>Payment tab: terms, due date, payment block; Details tab: invoicing party, unplanned delivery costs</li></ul><h3>Reference</h3><ul><li>Purchase order/scheduling agreement, delivery note, bill of lading, supplier</li><li>Layout: goods/service items, planned delivery costs, or both</li></ul><h3>Parking vs posting</h3><ul><li><strong>Park</strong> (<code>MIR7</code> or Save as parked): saves without accounting; someone else can complete or approve</li><li><strong>Post</strong>: creates invoice and accounting documents</li></ul><h3>Corrections</h3><ul><li><strong>Credit memo</strong>: supplier credits goods returned or overbilled (quantity-related)</li><li><strong>Subsequent debit/credit</strong>: price correction only, no quantity change</li><li><strong>Cancel</strong> a posted invoice with <code>MR8M</code></li></ul><h3>Display</h3><p><code>MIR4</code> display invoice, <code>MIR5</code> invoice list. Fiori: <em>Manage Supplier Invoices</em>, <em>Supplier Invoices List</em>.</p><p class='tip'>The difference between credit memo and subsequent credit is a guaranteed exam question.</p>",
+      "narration": "In M I R O, the header starts with the transaction: invoice, credit memo, subsequent debit, or subsequent credit. Then the invoice date, posting date, the reference, which is the supplier's invoice number, the amount and the tax code. The payment tab holds terms, due date and payment block. Below the header, you choose the reference document, usually the purchase order, but it can also be a delivery note or bill of lading. You can either park or post an invoice. Parking, also done with M I R seven, saves it without any accounting entries, so someone else can complete or approve it. Posting creates the invoice document and the accounting document. For corrections: a credit memo is used when the supplier credits goods returned or overbilled, and it's quantity-related. A subsequent debit or subsequent credit corrects the price only, without changing the quantity. And to reverse a posted invoice, use M R eight M. Display an invoice with M I R four, and list invoices with M I R five. Remember this one: the difference between a credit memo and a subsequent credit is a guaranteed exam question.",
+      "keyTerms": [
+        ["Park (MIR7)", "Save invoice without posting"],
+        ["Credit memo", "Quantity-related reduction (returns, overbilling)"],
+        ["Subsequent debit/credit", "Price correction without quantity change"],
+        ["MR8M", "Cancel invoice document"],
+        ["MIR4 / MIR5", "Display invoice / invoice list"]
+      ],
+      "tryIt": [
+        { "task": "Park an invoice for one of your POs, then complete and post it." },
+        { "task": "Post a subsequent debit of €20 on the same PO item and check the PO history." },
+        { "task": "Cancel the subsequent debit with MR8M." }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Tolerances, blocking and release",
+      "minutes": 35,
+      "body": "<h3>Tolerance keys</h3><p>Configured per company code (<code>OMR6</code>). Common ones:</p><table><tr><th>Key</th><th>Checks</th></tr><tr><td>PP</td><td>Price variance</td></tr><tr><td>DQ</td><td>Quantity variance (invoiced more than received)</td></tr><tr><td>DW</td><td>Quantity variance when GR quantity is zero</td></tr><tr><td>ST</td><td>Date variance</td></tr><tr><td>BD</td><td>Small differences posted automatically</td></tr></table><h3>Blocking reasons</h3><p>If a tolerance is exceeded, the invoice still posts but is <strong>blocked for payment</strong> (payment block R).</p><ul><li>Price, quantity, date, quality blocks</li><li><strong>Manual block</strong>: set on the item</li><li><strong>Stochastic block</strong>: random checks above a threshold</li></ul><h3>Releasing</h3><ul><li><code>MRBR</code> release blocked invoices: manually, or automatically when the reason disappears (e.g. the missing GR is posted)</li><li>Fiori: <em>Manage Supplier Invoices</em> with blocked filter</li></ul><h3>Duplicate check</h3><p>Same supplier + reference + amount + date triggers a warning or error, if <em>check double invoice</em> is active.</p><p class='tip'>Real accounts payable teams spend hours in MRBR. A trainer who explains why an invoice is blocked saves them days.</p>",
+      "narration": "Invoices are checked against tolerances, configured per company code. The common tolerance keys are: P P, for price variance; D Q, for quantity variance, when more is invoiced than received; D W, for quantity variance when nothing has been received yet; S T, for date variance; and B D, which lets small differences be posted automatically. If a tolerance is exceeded, the invoice still posts, but it's blocked for payment, with payment block R. Blocks can be for price, quantity, date or quality. There are also manual blocks, set by the user on an item, and stochastic blocks, random checks on invoices above a threshold. To release blocked invoices, use M R B R. It can release them manually, or automatically once the reason disappears, for example when the missing goods receipt is finally posted. There's also a duplicate check: if the same supplier, reference, amount and date appear twice, the system warns you, provided check double invoice is active on the supplier. Real accounts payable teams spend hours in M R B R. A trainer who can explain why an invoice is blocked saves them days.",
+      "keyTerms": [
+        ["Tolerance key PP", "Price variance"],
+        ["Tolerance key DQ", "Quantity variance"],
+        ["Payment block R", "Invoice verification block"],
+        ["Stochastic block", "Random check on invoices above a threshold"],
+        ["MRBR", "Release blocked invoices"]
+      ],
+      "tryIt": [
+        { "task": "Post an invoice at a much higher price than the PO and check that it's blocked." },
+        { "task": "Release it with MRBR." }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "GR/IR clearing and Evaluated Receipt Settlement",
+      "minutes": 30,
+      "body": "<h3>GR/IR account maintenance</h3><ul><li>Small or permanent differences (e.g. supplier will never invoice the last unit) stay on GR/IR</li><li><code>MR11</code> clears them, posting to a GR/IR clearing difference account</li><li><code>MB5S</code> lists balances to analyse</li><li>Month-end: GR/IR regrouping (in FI) reclassifies balances for the balance sheet</li></ul><h3>Evaluated Receipt Settlement (ERS)</h3><ul><li>No paper invoice: the system creates the invoice from the PO price and GR quantity</li><li>Requires the ERS flag in supplier purchasing data and on the PO item</li><li>Run with <code>MRRL</code></li><li>Common in the automotive industry and with trusted suppliers</li></ul><h3>Other automatic settlements</h3><ul><li><code>MRKO</code>: consignment and pipeline settlement (Module 9)</li><li><code>MRIS</code>: invoicing plan settlement (e.g. monthly rent)</li></ul><p class='tip'>Build your invoice-matching exercise pack here: one clean invoice, one price variance, one quantity variance, one credit memo.</p>",
+      "narration": "Sometimes small or permanent differences stay on the G R I R account, for example when the supplier will never invoice the last unit. M R one one clears those, posting them to a clearing difference account, and M B five S lists balances so you can analyse them. At month-end, finance reclassifies G R I R balances for the balance sheet. Next, evaluated receipt settlement, or E R S. With E R S there's no paper invoice: the system creates the invoice itself, from the purchase order price and the goods receipt quantity. It needs the E R S flag in the supplier's purchasing data and on the purchase order item, and it's run with M R R L. It's common in the automotive industry and with trusted suppliers. Similar automatic settlements exist for consignment and pipeline, with M R K O, which we'll see in module nine, and for invoicing plans such as monthly rent, with M R I S. This is a good place to build your invoice-matching exercise pack: one clean invoice, one price variance, one quantity variance, and one credit memo.",
+      "keyTerms": [
+        ["MR11", "Clear GR/IR differences"],
+        ["ERS", "Evaluated Receipt Settlement: invoice generated from PO and GR"],
+        ["MRRL", "Run ERS"],
+        ["MRKO", "Consignment/pipeline settlement"],
+        ["MRIS", "Invoicing plan settlement"]
+      ],
+      "tryIt": [
+        { "task": "Run MB5S for your supplier and look for open GR/IR balances." },
+        { "task": "Set ERS on your supplier and a new PO, post the GR and run MRRL." },
+        { "task": "Trainer kit: write four invoice-matching exercises (clean, price variance, quantity variance, credit memo)." }
+      ]
+    }
+  ],
+  "flashcards": [
+    ["Account determination configuration", "OBYC"],
+    ["Inventory transaction key", "BSX"],
+    ["GR/IR transaction key", "WRX"],
+    ["Price difference transaction key", "PRD"],
+    ["Offsetting entry key (consumption etc.)", "GBB"],
+    ["S price: where do PO/standard differences go?", "PRD price difference account"],
+    ["V price: invoice difference with stock on hand goes to…", "Stock (moving average changes)"],
+    ["Park invoice", "MIR7"],
+    ["Cancel invoice", "MR8M"],
+    ["Price-only correction", "Subsequent debit / credit"],
+    ["Quantity-related reduction", "Credit memo"],
+    ["Price variance tolerance key", "PP"],
+    ["Release blocked invoices", "MRBR"],
+    ["Clear GR/IR", "MR11"],
+    ["Run ERS", "MRRL"],
+    ["GR/IR balance list", "MB5S"]
+  ],
+  "quiz": [
+    { "q": "Which transaction key determines the GR/IR clearing account?", "options": ["BSX", "WRX", "PRD", "GBB"], "answer": 1, "explain": "WRX = GR/IR clearing." },
+    { "q": "Standard price €10, PO price €12, GR of 10 units. Price differences posted?", "options": ["€0", "€20", "€120", "€2"], "answer": 1, "explain": "Inventory at 100, GR/IR 120, PRD 20." },
+    { "q": "With price control V, an invoice price higher than the PO price (stock on hand) is posted to…", "options": ["PRD", "Stock account", "GR/IR only", "Supplier only"], "answer": 1, "explain": "The difference adjusts stock and the moving average price." },
+    { "q": "The supplier billed €5 too much per unit but quantities are correct. You post a…", "options": ["Credit memo", "Subsequent credit", "Return delivery", "Cancellation"], "answer": 1, "explain": "Subsequent credit corrects price without quantity." },
+    { "q": "An invoice exceeds the price tolerance. What happens?", "options": ["It can't be saved", "It posts but is blocked for payment", "The PO is changed", "It's automatically paid"], "answer": 1, "explain": "It posts with payment block R and must be released (MRBR)." },
+    { "q": "Which transaction creates invoices automatically from PO and GR without a paper invoice?", "options": ["MRBR", "MR11", "MRRL", "MIR7"], "answer": 2, "explain": "MRRL runs Evaluated Receipt Settlement." },
+    { "q": "What does a balance on the GR/IR account indicate?", "options": ["Paid invoices", "Mismatch between goods received and invoiced", "Stock value", "Price differences"], "answer": 1, "explain": "GR/IR shows goods received not invoiced or invoiced not received." },
+    { "q": "Parking an invoice…", "options": ["Posts it to FI", "Saves it without accounting entries", "Blocks the PO", "Cancels it"], "answer": 1, "explain": "Parked invoices create no accounting document until posted." }
+  ],
+  "trainerNotes": {
+    "howToTeach": [
+      "Do the S vs V example on paper before any system work",
+      "Always open the FI document after MIGO and MIRO",
+      "Use one PO to demonstrate clean invoice, variance, block and release"
+    ],
+    "commonMistakes": [
+      "Using a credit memo for a price correction",
+      "Forgetting tax, giving a non-zero balance",
+      "Not understanding why GR/IR has a balance at month-end"
+    ],
+    "demoScript": [
+      "MIGO GR on an S-price material: show PRD",
+      "MIRO with a price variance: invoice blocked",
+      "MRBR: release",
+      "MB5S: show GR/IR balances"
+    ]
+  }
+}

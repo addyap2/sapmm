@@ -1,0 +1,145 @@
+{
+  "id": 5,
+  "title": "Purchasing in Depth",
+  "intro": "Beyond the standard PO: processing requisitions in bulk, quotations, long-term agreements, special item categories and monitoring open orders.",
+  "objectives": [
+    "Assign sources and convert requisitions in bulk",
+    "Run an RFQ and compare quotations",
+    "Create contracts and scheduling agreements",
+    "Use special item categories and monitor purchasing documents"
+  ],
+  "lessons": [
+    {
+      "id": 1,
+      "title": "Processing requisitions efficiently",
+      "minutes": 30,
+      "body": "<p>Buyers rarely convert requisitions one by one.</p><ul><li><code>ME57</code> <strong>Assign and process requisitions</strong>: list open PRs, assign sources, then create POs from the assignment list</li><li><code>ME59N</code> <strong>Automatic creation of POs</strong>: converts PRs with a fixed source automatically. Requires the <em>Automatic PO</em> flag in both the supplier's purchasing data and the material's purchasing view</li><li><code>ME5A</code>: list of requisitions</li><li>Fiori: <em>Manage Purchase Requisitions</em>, <em>Process Purchase Requisitions</em> (buyer worklist)</li></ul><h3>PR statuses</h3><ul><li>Open, partially ordered, fully ordered, closed, deleted</li><li>Released or awaiting approval (Module 8)</li></ul><p class='tip'>ME59N is a favourite in classes for business managers: it shows how much manual work the system can remove.</p>",
+      "narration": "Buyers rarely convert requisitions one at a time. With M E five seven, assign and process requisitions, they get a list of open requisitions, assign a source of supply to each, and create purchase orders straight from that list. With M E five nine N, the system creates purchase orders automatically for requisitions that already have a fixed source. For that to work, the automatic purchase order flag must be set in both the supplier's purchasing data and the material's purchasing view. M E five A gives a list of requisitions, and in Fiori, buyers use Manage Purchase Requisitions or the buyer worklist. Requisitions move through statuses: open, partially ordered, fully ordered, closed, or deleted. They can also be released or waiting for approval, which we'll see in module eight. In class, M E five nine N goes down well with managers, because it shows how much manual work the system can remove.",
+      "keyTerms": [
+        ["ME57", "Assign and process requisitions"],
+        ["ME59N", "Automatic PO creation from requisitions"],
+        ["Automatic PO flag", "Must be set in supplier purchasing data and material purchasing view"],
+        ["ME5A", "List of purchase requisitions"]
+      ],
+      "tryIt": [
+        { "task": "Create three PRs for your material, then use ME57 to assign your supplier and create one PO for all three." },
+        { "task": "Set the Automatic PO flag on supplier and material, create a PR with a fixed source and run ME59N." }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "RFQs, quotations and price comparison",
+      "minutes": 30,
+      "body": "<p>When there's no agreed source or a large purchase needs competition, buyers request quotations.</p><h3>Classic process</h3><ol><li><code>ME41</code> create <strong>RFQ</strong> (request for quotation) for several suppliers</li><li><code>ME47</code> enter each supplier's <strong>quotation</strong> (prices) in the RFQ</li><li><code>ME49</code> <strong>price comparison</strong>: ranks quotations</li><li>Mark the winner accepted, reject the others (rejection letters via output)</li><li>Create the PO with reference to the winning quotation; tick Info Update to store the price</li></ol><h3>S/4HANA</h3><p>Newer releases offer Fiori apps (<em>Manage RFQs</em>, <em>Manage Supplier Quotations</em>) and integration with <strong>SAP Ariba</strong> sourcing. Which one your client uses depends on release and setup, so check before teaching.</p><p class='tip'>Many end users never run RFQs. Teach it to buyers, skip it for warehouse staff.</p>",
+      "narration": "When there's no agreed source, or a large purchase needs competition, buyers request quotations. In the classic process, you create a request for quotation, or R F Q, with M E four one, addressed to several suppliers. When their offers come back, you enter each quotation's prices with M E four seven. Then M E four nine runs a price comparison and ranks the quotations. You mark the winner as accepted, reject the others, and create the purchase order with reference to the winning quotation, ticking info update so the price is stored for next time. In S/4HANA, newer releases also offer Fiori apps for R F Qs and supplier quotations, and integration with SAP Ariba for sourcing. Which one a client uses depends on their release and setup, so check before you teach. And a practical point: many end users never run R F Qs. Teach it to buyers, and skip it for warehouse staff.",
+      "keyTerms": [
+        ["RFQ", "Request for quotation sent to suppliers (ME41)"],
+        ["Quotation", "Supplier's offer entered against the RFQ (ME47)"],
+        ["ME49", "Price comparison list"],
+        ["SAP Ariba", "SAP's cloud procurement and sourcing network"]
+      ],
+      "tryIt": [
+        { "task": "Create an RFQ for two suppliers (ME41), enter different prices for each (ME47), run ME49 and create a PO from the winning quotation." }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Outline agreements: contracts and scheduling agreements",
+      "minutes": 40,
+      "body": "<p><strong>Outline agreements</strong> are long-term arrangements with a supplier.</p><h3>Contracts</h3><ul><li>Create with <code>ME31K</code></li><li><strong>Quantity contract</strong> (type MK): agreed total quantity</li><li><strong>Value contract</strong> (type WK): agreed total value</li><li>Goods are ordered through <strong>release orders</strong>: normal POs that reference the contract (contract number + item)</li><li>The contract tracks how much has been released</li></ul><h3>Scheduling agreements</h3><ul><li>Create with <code>ME31L</code> (types LP, LPA)</li><li>For regular, repetitive deliveries (e.g. components for production)</li><li>No separate POs: you maintain <strong>delivery schedule lines</strong> in the agreement (<code>ME38</code>), often generated by MRP</li><li>Fewer documents, ideal for JIT supply</li></ul><h3>Comparison</h3><table><tr><th></th><th>Contract</th><th>Scheduling agreement</th></tr><tr><td>Call-off</td><td>Release order (PO)</td><td>Schedule line</td></tr><tr><td>Typical use</td><td>Framework price, irregular needs</td><td>Regular, planned deliveries</td></tr><tr><td>Transaction</td><td>ME31K</td><td>ME31L / ME38</td></tr></table><p class='tip'>A real company example helps: “the office supplies contract” vs “the daily delivery of packaging to the factory”.</p>",
+      "narration": "Outline agreements are long-term arrangements with a supplier, and there are two kinds. First, contracts, created with M E three one K. A quantity contract, type M K, agrees a total quantity. A value contract, type W K, agrees a total value. You don't receive goods against the contract directly. Instead, you create release orders, which are normal purchase orders that reference the contract number and item, and the contract keeps track of how much has been released. Second, scheduling agreements, created with M E three one L. They're for regular, repetitive deliveries, such as components for production. There are no separate purchase orders. Instead, you maintain delivery schedule lines inside the agreement, with M E three eight, and these are often generated by the planning run. That means far fewer documents, which makes scheduling agreements ideal for just-in-time supply. So: a contract gives a framework price for irregular needs, called off with release orders. A scheduling agreement covers regular planned deliveries, called off with schedule lines. In class, real examples help: the office supplies contract, versus the daily delivery of packaging to the factory.",
+      "keyTerms": [
+        ["Outline agreement", "Long-term agreement: contract or scheduling agreement"],
+        ["Quantity contract (MK)", "Agreed total quantity"],
+        ["Value contract (WK)", "Agreed total value"],
+        ["Release order", "PO referencing a contract"],
+        ["Scheduling agreement", "Agreement with delivery schedule lines (ME31L, ME38)"]
+      ],
+      "tryIt": [
+        { "task": "Create a quantity contract (ME31K) for 1,000 units of your material, then create a release order PO for 100 units referencing it." },
+        { "task": "Display the contract release documentation to see the 100 units released." },
+        { "task": "Create a scheduling agreement (ME31L) and add two schedule lines with ME38." }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Special item categories",
+      "minutes": 35,
+      "body": "<p>The <strong>item category</strong> on a PR or PO controls how the item is processed.</p><table><tr><th>Code</th><th>Item category</th><th>Use</th></tr><tr><td>(blank)</td><td>Standard</td><td>Normal purchase</td></tr><tr><td>K</td><td>Consignment</td><td>Supplier's stock held at your site, paid when withdrawn</td></tr><tr><td>L</td><td>Subcontracting</td><td>You provide components; supplier processes them</td></tr><tr><td>S</td><td>Third-party</td><td>Supplier ships directly to your customer</td></tr><tr><td>U</td><td>Stock transfer</td><td>Transfer between your own plants</td></tr><tr><td>D</td><td>Service</td><td>Services with service entry</td></tr><tr><td>B</td><td>Limit</td><td>Value limit for unplanned services/materials</td></tr></table><p>Details of consignment, subcontracting and stock transfers are in Module 9.</p><h3>Account assignment recap</h3><p>Combined with account assignment categories (K cost centre, F order, A asset, P project), item categories cover almost every purchasing scenario.</p><p class='tip'>Don't confuse item category <strong>K</strong> (consignment) with account assignment <strong>K</strong> (cost centre). Learners mix them up every time, so say it out loud.</p>",
+      "narration": "The item category on a requisition or purchase order controls how that item is processed. Blank means a standard purchase. K is consignment: the supplier's stock sits at your site and you only pay when you withdraw it. L is subcontracting: you provide components and the supplier processes them for you. S is third-party: the supplier ships directly to your customer. U is a stock transfer between your own plants. D is a service. And B is a limit item, a value limit for unplanned services or materials. We'll go into consignment, subcontracting and stock transfers in module nine. Combined with account assignment categories, these item categories cover almost every purchasing scenario. One warning to give every class: item category K means consignment, while account assignment category K means cost centre. Learners mix them up every time, so say it out loud.",
+      "keyTerms": [
+        ["Item category K", "Consignment"],
+        ["Item category L", "Subcontracting"],
+        ["Item category S", "Third-party (direct delivery to customer)"],
+        ["Item category U", "Stock transfer"],
+        ["Item category D", "Service"]
+      ],
+      "tryIt": [
+        { "task": "In ME21N, open the item category dropdown and list the categories available in your system." },
+        { "task": "Create a PO item with item category K for a material that has a consignment info record." }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Monitoring and changing purchasing documents",
+      "minutes": 30,
+      "body": "<h3>List reports</h3><ul><li><code>ME2M</code> POs by material</li><li><code>ME2L</code> POs by supplier</li><li><code>ME2N</code> POs by PO number</li><li><code>ME80FN</code> general analysis of purchasing documents</li><li>Selection parameter <strong>WE101</strong> in ME2x reports = open goods receipts</li><li>Fiori: <em>Monitor Purchase Order Items</em>, <em>Manage Purchase Orders</em> with filters</li></ul><h3>Changing a PO</h3><ul><li><code>ME22N</code> change, <code>ME23N</code> display</li><li>Changes are logged (Environment → Header changes / Item changes)</li><li>Significant changes can trigger re-approval and new output to the supplier</li><li>Close an item manually with the <strong>Delivery completed</strong> indicator, or delete/block items not yet delivered</li></ul><h3>Order acknowledgements and reminders</h3><ul><li><strong>Confirmation control</strong>: supplier confirms dates/quantities</li><li><strong>Reminders</strong> sent automatically for overdue items (<code>ME91F</code>)</li></ul><p class='tip'>ME2M with WE101 answers the most common manager question: “what are we still waiting for?”</p>",
+      "narration": "Buyers spend a lot of time monitoring orders. The classic list reports are M E two M for purchase orders by material, M E two L by supplier, M E two N by order number, and M E eight zero F N for general analysis. In the M E two reports, the selection parameter W E one zero one shows items still waiting for goods receipt. In Fiori, the Monitor Purchase Order Items app does the same job. To change an order, use M E two two N, and to display it, M E two three N. Every change is logged and can be viewed from the environment menu. Significant changes can trigger a new approval and send updated output to the supplier. When an item won't be delivered in full, you can close it with the delivery completed indicator, or delete or block undelivered items. Finally, confirmation control lets suppliers confirm dates and quantities, and reminders can be sent automatically for overdue items with M E nine one F. In class, M E two M with W E one zero one answers the most common manager question of all: what are we still waiting for?",
+      "keyTerms": [
+        ["ME2M / ME2L / ME2N", "PO lists by material / supplier / number"],
+        ["WE101", "Selection parameter: open goods receipts"],
+        ["ME22N / ME23N", "Change / display PO"],
+        ["Delivery completed indicator", "Closes a PO item even if not fully delivered"],
+        ["ME91F", "Reminders for overdue PO items"]
+      ],
+      "tryIt": [
+        { "task": "Run ME2L for your supplier with selection parameter WE101 to list open GRs." },
+        { "task": "Change the quantity on a PO with ME22N, then view the change log." },
+        { "task": "Trainer kit: build a 5-exercise 'Purchasing exercises pack' from this module." }
+      ]
+    }
+  ],
+  "flashcards": [
+    ["Assign and process requisitions", "ME57"],
+    ["Automatic PO creation", "ME59N"],
+    ["Create RFQ / enter quotation / compare", "ME41 / ME47 / ME49"],
+    ["Create contract", "ME31K"],
+    ["Contract types", "MK quantity, WK value"],
+    ["PO referencing a contract", "Release order"],
+    ["Create scheduling agreement", "ME31L"],
+    ["Maintain delivery schedule", "ME38"],
+    ["Item category L", "Subcontracting"],
+    ["Item category S", "Third-party"],
+    ["Item category U", "Stock transfer"],
+    ["PO list by supplier", "ME2L"],
+    ["Open GR selection parameter", "WE101"],
+    ["Change PO", "ME22N"]
+  ],
+  "quiz": [
+    { "q": "Which transaction converts requisitions with a fixed source into POs automatically?", "options": ["ME57", "ME59N", "ME21N", "ME5A"], "answer": 1, "explain": "ME59N creates POs automatically; ME57 is the manual assignment list." },
+    { "q": "Goods called off against a contract are ordered with…", "options": ["Schedule lines", "Release orders", "Quotations", "Source lists"], "answer": 1, "explain": "Release orders are POs referencing the contract." },
+    { "q": "Which outline agreement suits regular daily deliveries to production?", "options": ["Value contract", "Quantity contract", "Scheduling agreement", "RFQ"], "answer": 2, "explain": "Scheduling agreements use delivery schedule lines and avoid many separate POs." },
+    { "q": "Item category S means…", "options": ["Service", "Stock transfer", "Third-party", "Subcontracting"], "answer": 2, "explain": "S = third-party; the supplier ships directly to your customer." },
+    { "q": "Which transaction compares quotations?", "options": ["ME41", "ME47", "ME49", "ME31K"], "answer": 2, "explain": "ME49 is the price comparison list." },
+    { "q": "A contract with an agreed total value is type…", "options": ["MK", "WK", "LP", "NB"], "answer": 1, "explain": "WK = value contract; MK = quantity contract." },
+    { "q": "How do you list POs still waiting for goods receipt?", "options": ["ME2M with WE101", "MB52", "ME13", "MIRO"], "answer": 0, "explain": "Selection parameter WE101 restricts ME2x lists to open GRs." },
+    { "q": "Item category K on a PO item means…", "options": ["Cost centre", "Consignment", "Contract", "Kanban"], "answer": 1, "explain": "Item category K = consignment. Account assignment K = cost centre." }
+  ],
+  "trainerNotes": {
+    "howToTeach": [
+      "Start from a buyer's day: worklist of PRs, sourcing, ordering, chasing",
+      "Use a contract scenario learners recognise (office supplies, fuel cards)",
+      "Contrast item category K and account assignment K explicitly"
+    ],
+    "commonMistakes": [
+      "Creating a new PO instead of a release order, so contract consumption isn't tracked",
+      "ME59N creating nothing because the Automatic PO flag is missing",
+      "Confusing item category and account assignment category"
+    ],
+    "demoScript": [
+      "ME57: assign sources to three PRs and create a PO",
+      "ME31K: create a quantity contract; ME21N: release order",
+      "ME2L with WE101: show what's still open"
+    ]
+  }
+}

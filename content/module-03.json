@@ -1,0 +1,132 @@
+{
+  "id": 3,
+  "title": "Master Data II — Product, Info Records, Source Lists",
+  "intro": "The material (product) master describes what you buy and stock. Purchasing info records and source lists describe who you buy it from and on what terms.",
+  "objectives": [
+    "Explain material types, views and organisational levels of the material master",
+    "Identify the key purchasing, MRP and accounting fields",
+    "Create and use purchasing info records",
+    "Use source lists and explain the source determination sequence"
+  ],
+  "lessons": [
+    {
+      "id": 1,
+      "title": "Material master structure",
+      "minutes": 35,
+      "body": "<p>The <strong>material master</strong> (called <em>product master</em> in Fiori) is the central record for everything a company buys, makes, stores or sells. Transactions: <code>MM01</code> create, <code>MM02</code> change, <code>MM03</code> display. Fiori: <em>Manage Product Master Data</em>.</p><h3>Material type</h3><p>Chosen at creation; controls which views are allowed, numbering, and whether quantity and value are tracked.</p><table><tr><th>Type</th><th>Meaning</th></tr><tr><td>ROH</td><td>Raw material</td></tr><tr><td>HALB</td><td>Semi-finished product</td></tr><tr><td>FERT</td><td>Finished product</td></tr><tr><td>HAWA</td><td>Trading goods (bought and resold)</td></tr><tr><td>HIBE</td><td>Operating supplies</td></tr><tr><td>ERSA</td><td>Spare parts</td></tr><tr><td>VERP</td><td>Packaging</td></tr><tr><td>NLAG</td><td>Non-stock material</td></tr><tr><td>DIEN</td><td>Service</td></tr></table><h3>Views and organisational levels</h3><p>Data is split into <strong>views</strong>, each held at an organisational level:</p><table><tr><th>View</th><th>Level</th></tr><tr><td>Basic data</td><td>Client</td></tr><tr><td>Purchasing, MRP, Plant data</td><td>Plant</td></tr><tr><td>Storage location data</td><td>Storage location</td></tr><tr><td>Accounting, Costing</td><td>Valuation area (plant)</td></tr><tr><td>Sales</td><td>Sales org / distribution channel</td></tr></table><p>So the same material can have different MRP settings in Fréjus and Nice, but always the same description and base unit.</p><p class='tip'>In S/4HANA the material number can be up to 40 characters (18 in ECC).</p>",
+      "narration": "The material master, called the product master in Fiori, is the central record for everything a company buys, makes, stores or sells. You create it with M M zero one, change it with M M zero two, and display it with M M zero three. When you create a material, you choose a material type, and that choice controls which data views are allowed, how the number is assigned, and whether stock quantity and value are tracked. The common types are R O H for raw materials, H A L B for semi-finished products, F E R T for finished products, H A W A for trading goods that you buy and resell, H I B E for operating supplies, E R S A for spare parts, V E R P for packaging, N L A G for non-stock materials, and D I E N for services. The data itself is split into views, and each view lives at an organisational level. Basic data, such as the description and base unit of measure, is held at client level, so it's the same everywhere. Purchasing, M R P and plant data are held per plant. Storage location data is per storage location. Accounting and costing data are per valuation area, which is normally the plant. And sales data is per sales organisation and distribution channel. That means one material can have different planning settings in two plants, but always the same description. Finally, in S/4HANA, material numbers can be up to forty characters long.",
+      "keyTerms": [
+        ["Material type", "Controls views, numbering and quantity/value update, e.g. ROH, FERT, HAWA"],
+        ["View", "Section of the material master, e.g. Purchasing, MRP 1, Accounting 1"],
+        ["Basic data", "Client-level data: description, base unit, material group"],
+        ["NLAG", "Non-stock material: bought for consumption, no inventory"]
+      ],
+      "tryIt": [
+        { "task": "Display a raw material with MM03. Select views and note which org levels (plant, storage location) the system asks for." },
+        { "task": "Compare one ROH and one HAWA material: which views exist for each?" }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Key fields for purchasing, planning and accounting",
+      "minutes": 35,
+      "body": "<h3>Basic data</h3><ul><li><strong>Base unit of measure</strong>: the unit stock is managed in (e.g. PC, KG)</li><li><strong>Material group</strong>: groups similar materials for purchasing and reporting</li></ul><h3>Purchasing view (plant)</h3><ul><li><strong>Order unit</strong>: unit used on POs if different from base unit (e.g. order in boxes, stock in pieces), with conversion factors</li><li><strong>Purchasing group</strong>: responsible buyer</li><li><strong>Under/overdelivery tolerance</strong> and <strong>unlimited overdelivery</strong></li><li><strong>Source list</strong> indicator: a source list is required for this material in this plant</li><li><strong>GR processing time</strong>: days between receipt and availability</li></ul><h3>MRP views (plant)</h3><ul><li><strong>MRP type</strong> and <strong>lot size</strong> (Module 9)</li><li><strong>Planned delivery time</strong></li><li><strong>Procurement type</strong>: E in-house, F external, X both</li></ul><h3>Accounting 1 view (valuation area)</h3><ul><li><strong>Valuation class</strong>: links the material to G/L accounts (Module 7)</li><li><strong>Price control</strong>: <strong>S</strong> standard price or <strong>V</strong> moving average price</li><li><strong>Standard price / moving average price</strong></li></ul><p class='tip'>Price control and valuation class decide what happens in accounting at every goods receipt and invoice. Trainers who understand these two fields can explain almost any posting.</p>",
+      "narration": "Let's look at the fields that matter most. In basic data, the base unit of measure is the unit stock is managed in, such as pieces or kilograms, and the material group groups similar materials for purchasing and reporting. In the purchasing view, which is held per plant, you'll find the order unit, used when you order in a different unit, for example ordering boxes but stocking pieces. There's the purchasing group, the responsible buyer. There are under-delivery and over-delivery tolerances. There's the source list indicator, which forces a source list for this material in this plant. And there's the goods receipt processing time, the number of days between receipt and availability. In the M R P views, you set the M R P type, the lot size, the planned delivery time, and the procurement type: E for in-house production, F for external procurement, or X for both. In the accounting one view, two fields are critical. The valuation class links the material to general ledger accounts. And price control decides how stock is valued: S for standard price, which stays fixed, or V for moving average price, which changes with each receipt. If you understand these two fields, you can explain almost every accounting posting in MM.",
+      "keyTerms": [
+        ["Order unit", "Purchasing unit different from base unit, with conversion"],
+        ["Procurement type", "E in-house, F external, X both"],
+        ["Valuation class", "Links the material to G/L accounts"],
+        ["Price control S", "Standard price: fixed; differences go to a price difference account"],
+        ["Price control V", "Moving average price: recalculated at receipts"]
+      ],
+      "tryIt": [
+        { "task": "In MM03 find a material's base unit, material group, purchasing group, planned delivery time, valuation class and price control." },
+        { "task": "Find one material with price control S and one with V in your system." }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Purchasing info records",
+      "minutes": 35,
+      "body": "<p>A <strong>purchasing info record</strong> stores the relationship between <strong>one material and one supplier</strong>: price, delivery time, tolerances. When a buyer creates a PO, the price is proposed from it.</p><p>Transactions: <code>ME11</code> create, <code>ME12</code> change, <code>ME13</code> display. Fiori: <em>Manage Purchasing Info Records</em>.</p><h3>Data levels</h3><ul><li><strong>General data</strong>: supplier material number, reminders, origin</li><li><strong>Purchasing organisation (and plant) data</strong>: planned delivery time, purchasing group, standard quantity, tolerances, net price and <strong>conditions</strong> (prices, discounts, surcharges with validity periods)</li></ul><h3>Info record categories</h3><ul><li><strong>Standard</strong>: normal purchasing</li><li><strong>Subcontracting</strong>: price for the subcontractor's work</li><li><strong>Consignment</strong>: price for consignment stock withdrawals</li><li><strong>Pipeline</strong>: e.g. utilities, oil, gas</li></ul><h3>How they get created</h3><ul><li>Manually with ME11</li><li>Automatically from a PO or quotation when the <strong>Info Update</strong> indicator is set on the item</li><li>Without a material number, for a <strong>material group</strong> (e.g. office supplies)</li></ul><p class='tip'>The info record also shows the last PO number and price history: a great live demo of “the system remembers”.</p>",
+      "narration": "A purchasing info record stores the relationship between one material and one supplier. It holds the price, the delivery time and the tolerances, and when a buyer creates a purchase order, the price is proposed from it. You create one with M E one one, change it with M E one two, and display it with M E one three. An info record has two levels. General data includes the supplier's own material number and reminder settings. Purchasing organisation data, optionally per plant, holds the planned delivery time, purchasing group, tolerances, and most importantly the conditions: the prices, discounts and surcharges, each with a validity period. There are four categories of info record: standard, for normal purchasing; subcontracting, for the price of a subcontractor's work; consignment, for the price of consignment stock; and pipeline, for things like utilities. Info records can be created manually, or automatically from a purchase order or quotation when the info update indicator is set on the item. They can even be created without a material number, for a material group such as office supplies. A nice classroom demo: open an info record and show the last purchase order number and price history. It shows learners that the system remembers.",
+      "keyTerms": [
+        ["Purchasing info record", "Material–supplier relationship with price and terms"],
+        ["ME11 / ME12 / ME13", "Create / change / display info record"],
+        ["Conditions", "Prices, discounts and surcharges with validity periods"],
+        ["Info Update indicator", "PO item flag that creates/updates the info record"],
+        ["Info record categories", "Standard, subcontracting, consignment, pipeline"]
+      ],
+      "tryIt": [
+        { "task": "Display an info record with ME13. Find the net price, conditions and planned delivery time." },
+        { "task": "Create an info record (ME11) for the supplier you created in Module 2 and an existing material, with a net price." }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Source lists and source determination",
+      "minutes": 30,
+      "body": "<p>A <strong>source list</strong> defines the <strong>allowed sources</strong> for a material in a plant over a period of time. Transaction: <code>ME01</code> (maintain). Fiori: <em>Manage Source Lists</em>.</p><h3>Each source list line contains</h3><ul><li>Validity dates</li><li>Supplier and purchasing organisation (or an outline agreement)</li><li><strong>Fixed</strong> indicator: preferred source for the period</li><li><strong>Blocked</strong> indicator: source not allowed</li><li><strong>MRP</strong> indicator: whether MRP may assign this source automatically</li></ul><h3>When is a source list required?</h3><ul><li>If set in the material master purchasing view, or</li><li>If required for all materials in a plant (configuration)</li></ul><p>Then a PO can only be created with a supplier in the source list.</p><h3>Source determination sequence</h3><p>When the system looks for a supplier (e.g. for a requisition), it checks in this order:</p><ol><li><strong>Quota arrangement</strong> (split between suppliers by percentage, <code>MEQ1</code>)</li><li><strong>Source list</strong></li><li><strong>Outline agreements</strong> (contracts, scheduling agreements)</li><li><strong>Info records</strong></li></ol><p class='tip'>Source lists are a compliance tool: they stop buyers ordering from unapproved suppliers.</p>",
+      "narration": "A source list defines which sources are allowed for a material in a plant, over a period of time. You maintain it with M E zero one. Each line has validity dates, a supplier and purchasing organisation or an outline agreement, and three important indicators. Fixed marks the preferred source for that period. Blocked means the source isn't allowed. And the M R P indicator decides whether planning can assign this source automatically. A source list becomes mandatory either through the indicator in the material's purchasing view, or through a plant-wide setting in configuration. Once it's required, a purchase order can only be created with a supplier that's in the list. When the system looks for a supplier automatically, for example for a requisition, it follows a set sequence. First, quota arrangements, which split requirements between suppliers by percentage. Then the source list. Then outline agreements, meaning contracts and scheduling agreements. And finally info records. For trainers, it's worth framing source lists as a compliance tool: they stop buyers ordering from suppliers that haven't been approved.",
+      "keyTerms": [
+        ["Source list", "Allowed sources per material and plant with validity periods"],
+        ["ME01", "Maintain source list"],
+        ["Fixed source", "Preferred supplier for the period"],
+        ["Quota arrangement", "Splits requirements between sources by percentage (MEQ1)"],
+        ["Source determination", "Quota → source list → outline agreement → info record"]
+      ],
+      "tryIt": [
+        { "task": "Display a source list with ME03. Note the fixed and blocked indicators." },
+        { "task": "Create a source list (ME01) for your material and supplier, mark it fixed, then create a PR and use 'Assign source' to see it proposed." },
+        { "task": "Trainer kit: write a one-page 'Product master field guide' listing the 10 fields learners most need." }
+      ]
+    }
+  ],
+  "flashcards": [
+    ["Transactions to create / change / display a material", "MM01 / MM02 / MM03"],
+    ["Material type for raw materials", "ROH"],
+    ["Material type for trading goods", "HAWA"],
+    ["Material type for finished products", "FERT"],
+    ["Level of basic data", "Client"],
+    ["Level of purchasing and MRP views", "Plant"],
+    ["Level of accounting view", "Valuation area (usually plant)"],
+    ["Procurement type F", "External procurement"],
+    ["Price control S vs V", "S = standard price, V = moving average price"],
+    ["What links a material to G/L accounts?", "Valuation class"],
+    ["Info record links…", "One material and one supplier"],
+    ["Create info record", "ME11"],
+    ["Four info record categories", "Standard, subcontracting, consignment, pipeline"],
+    ["Maintain source list", "ME01"],
+    ["Source determination order", "Quota arrangement → source list → outline agreement → info record"],
+    ["Max material number length in S/4HANA", "40 characters"]
+  ],
+  "quiz": [
+    { "q": "Which material type is used for goods bought and resold without processing?", "options": ["ROH", "HALB", "HAWA", "FERT"], "answer": 2, "explain": "HAWA = trading goods." },
+    { "q": "At which level is the material description held?", "options": ["Plant", "Client", "Storage location", "Valuation area"], "answer": 1, "explain": "Basic data, including the description, is client level." },
+    { "q": "A material with price control V is valued at…", "options": ["A fixed standard price", "The moving average price", "The last PO price only", "Zero"], "answer": 1, "explain": "V = moving average price, recalculated at goods receipts and invoices." },
+    { "q": "What does a purchasing info record contain?", "options": ["Org structure assignments", "Material–supplier price and terms", "Stock quantities", "G/L account settings"], "answer": 1, "explain": "Info records hold prices, conditions and delivery terms for a material–supplier pair." },
+    { "q": "How can an info record be created automatically?", "options": ["By the MRP run", "From a PO item with the Info Update indicator", "By posting MIGO", "From the source list"], "answer": 1, "explain": "The Info Update indicator on PO or quotation items updates or creates the info record." },
+    { "q": "Which comes first in source determination?", "options": ["Info record", "Outline agreement", "Source list", "Quota arrangement"], "answer": 3, "explain": "Quota arrangement → source list → outline agreement → info record." },
+    { "q": "A source list entry with the 'blocked' indicator means…", "options": ["Preferred source", "The supplier may not be used in that period", "MRP must use it", "The PO is blocked for payment"], "answer": 1, "explain": "Blocked sources cannot be used for the material/plant in that period." },
+    { "q": "Which field links a material to inventory G/L accounts?", "options": ["Material group", "Valuation class", "Purchasing group", "MRP type"], "answer": 1, "explain": "The valuation class drives automatic account determination." },
+    { "q": "Procurement type X means…", "options": ["No procurement", "External only", "In-house only", "Both in-house and external"], "answer": 3, "explain": "E = in-house, F = external, X = both." }
+  ],
+  "trainerNotes": {
+    "howToTeach": [
+      "Show one material in MM03 and click through views while naming the org level of each",
+      "Link fields to processes: 'this field is why the PO proposed that price'",
+      "Build info record and source list live, then create a PR to show automatic source assignment"
+    ],
+    "commonMistakes": [
+      "Forgetting to extend a material to a new plant before ordering for it",
+      "Confusing base unit and order unit",
+      "Expecting a price on the PO when no info record or contract exists"
+    ],
+    "demoScript": [
+      "MM03: walk through Basic data, Purchasing, MRP 1, Accounting 1",
+      "ME13: show conditions and last PO",
+      "ME01: create a fixed source",
+      "ME51N: create a PR and assign the source automatically"
+    ]
+  }
+}

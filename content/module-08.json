@@ -1,0 +1,128 @@
+{
+  "id": 8,
+  "title": "Pricing, Release Strategies & Output",
+  "intro": "How prices are calculated on purchasing documents, how approvals work, and how documents are sent to suppliers.",
+  "objectives": [
+    "Explain the condition technique and the main purchasing condition types",
+    "Maintain conditions in info records and condition records",
+    "Explain release strategies and flexible workflow",
+    "Describe output determination for purchase orders"
+  ],
+  "lessons": [
+    {
+      "id": 1,
+      "title": "The condition technique",
+      "minutes": 40,
+      "body": "<p>Prices on POs are built from <strong>conditions</strong> using SAP's <strong>condition technique</strong>, the same logic used in sales pricing.</p><h3>The building blocks</h3><ul><li><strong>Condition type</strong>: one price element, e.g. gross price, discount, freight</li><li><strong>Condition table</strong>: the key a price is stored by (e.g. supplier + material + purchasing org)</li><li><strong>Access sequence</strong>: the order in which tables are searched (most specific first)</li><li><strong>Condition record</strong>: the actual value with validity dates</li><li><strong>Calculation schema</strong> (pricing procedure): sequence of condition types on the document, e.g. standard <strong>RM0000</strong></li></ul><h3>Common condition types</h3><table><tr><th>Type</th><th>Meaning</th></tr><tr><td>PB00 / PBXX</td><td>Gross price (classic); S/4HANA Best Practices systems may use other keys, e.g. PPR0, so check yours</td></tr><tr><td>RA01</td><td>Discount % from gross</td></tr><tr><td>RB00</td><td>Absolute discount</td></tr><tr><td>FRA1 / FRB1</td><td>Freight % / absolute</td></tr><tr><td>SKTO</td><td>Cash discount (statistical)</td></tr></table><h3>Schema determination</h3><p>The calculation schema is chosen from the <strong>schema group of the supplier</strong> (supplier purchasing data) + <strong>schema group of the purchasing org</strong>. That's why the supplier's schema group field matters.</p><p class='tip'>Use a pizza analogy: base price, discount, delivery charge, total. Everyone gets the condition technique in two minutes.</p>",
+      "narration": "Prices on purchase orders are built from conditions, using what SAP calls the condition technique. It's the same logic used in sales pricing. There are five building blocks. A condition type is one price element, like the gross price, a discount, or freight. A condition table defines the key a price is stored by, for example supplier, material and purchasing organisation. An access sequence is the order in which the system searches those tables, most specific first. A condition record is the actual value, with validity dates. And the calculation schema, also called the pricing procedure, is the sequence of condition types that appears on the document. The standard one is R M zero zero zero zero. Common condition types are P B zero zero for gross price in classic configuration, though S/4HANA best practice systems may use other keys, so check yours. R A zero one is a percentage discount, R B zero zero an absolute discount, F R A one and F R B one are freight, and S K T O is cash discount. How is the schema chosen? From the schema group of the supplier, set in the supplier's purchasing data, combined with the schema group of the purchasing organisation. Teaching tip: use a pizza analogy. Base price, discount, delivery charge, total. Everyone understands the condition technique in two minutes.",
+      "keyTerms": [
+        ["Condition type", "One price element (gross price, discount, freight)"],
+        ["Access sequence", "Search order of condition tables"],
+        ["Condition record", "Stored value with validity dates"],
+        ["Calculation schema", "Pricing procedure for purchasing documents, e.g. RM0000"],
+        ["Schema group", "Supplier/purchasing org key that selects the calculation schema"]
+      ],
+      "tryIt": [
+        { "task": "Open a PO item in ME23N → Conditions tab. List the condition types, values and the net price." },
+        { "task": "Click the 'Analysis' button on the conditions tab to see which access found the price." }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Maintaining conditions",
+      "minutes": 30,
+      "body": "<h3>Where conditions are stored</h3><ul><li><strong>Info record</strong> conditions (most common): price per material–supplier–purchasing org</li><li><strong>Contract</strong> conditions</li><li><strong>General condition records</strong> at other levels: e.g. a supplier-wide discount or a freight charge for a material group</li></ul><h3>Transactions</h3><ul><li><code>MEK1 / MEK2 / MEK3</code>: create / change / display conditions</li><li><code>ME11 / ME12</code>: info record conditions (Conditions button)</li><li><code>MEKE</code>: conditions by supplier (list)</li></ul><h3>Features</h3><ul><li><strong>Validity periods</strong>: future price changes can be entered in advance</li><li><strong>Scales</strong>: quantity- or value-based (e.g. €10 from 1 unit, €9 from 100)</li><li><strong>Manual conditions</strong> added directly on the PO (e.g. one-off freight)</li></ul><p class='tip'>Scales are a great exercise: learners create a scale, then order 50 vs 150 units and watch the price change.</p>",
+      "narration": "Conditions can be stored in several places. Most commonly in the info record, as a price per material, supplier and purchasing organisation. They can also be stored in a contract, or as general condition records at other levels, such as a supplier-wide discount or a freight charge for a whole material group. To maintain general conditions, use M E K one, two and three, to create, change and display. Info record conditions are maintained in M E one one or one two, using the conditions button. And M E K E lists conditions by supplier. Three features are worth teaching. Validity periods, so future price changes can be entered in advance. Scales, which are quantity or value based: for example ten euros from one unit, and nine euros from a hundred. And manual conditions added directly on the purchase order, such as a one-off freight charge. Scales make a great exercise: learners create a scale, order fifty units and then a hundred and fifty, and watch the price change.",
+      "keyTerms": [
+        ["MEK1 / MEK2 / MEK3", "Create / change / display condition records"],
+        ["Scale", "Price that depends on quantity or value"],
+        ["Validity period", "Date range a condition record applies to"],
+        ["Manual condition", "Condition entered directly on the document"]
+      ],
+      "tryIt": [
+        { "task": "In your info record (ME12), add a scale: €10 from 1 unit, €9 from 100 units." },
+        { "task": "Create POs for 50 and 150 units and compare the net price." },
+        { "task": "Add a manual freight condition (FRB1) to a PO item." }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Release strategies and approvals",
+      "minutes": 40,
+      "body": "<p>Companies require approval for purchases above certain values. SAP offers two approaches.</p><h3>Classic release strategy (classification-based)</h3><ul><li><strong>Characteristics</strong> on communication structures: <strong>CEBAN</strong> for PRs, <strong>CEKKO</strong> for POs (e.g. total value, purchasing group, plant)</li><li><strong>Release group</strong> and <strong>release codes</strong> (who approves, e.g. manager, director)</li><li><strong>Release indicators</strong>: blocked, released for PO, changeable after release</li><li><strong>Release strategy</strong>: which codes must approve, in which order, for which values</li></ul><p>Release transactions: <code>ME54N</code> / <code>ME55</code> (PR single / collective), <code>ME29N</code> / <code>ME28</code> (PO single / collective).</p><h3>Flexible workflow (S/4HANA)</h3><ul><li>Configured in Fiori: <em>Manage Workflows for Purchase Orders</em> / <em>Purchase Requisitions</em></li><li>Conditions (e.g. value above €5,000) and steps (e.g. manager, then purchasing head)</li><li>Approvers act in the Fiori app <em>My Inbox</em>, also on mobile</li></ul><p>A company uses one or the other per document type. Check which before teaching.</p><p class='tip'>For end users, approval training is mostly 'how to approve in My Inbox'. For buyers, it's 'why is my PO blocked and who do I chase?'.</p>",
+      "narration": "Most companies require approval for purchases above certain values, and SAP offers two approaches. The classic approach is the release strategy, based on classification. It uses characteristics from communication structures: C E B A N for requisitions and C E K K O for purchase orders, such as total value, purchasing group or plant. Then there are release groups, release codes that represent who approves, release indicators that control what can happen at each stage, and release strategies that define which codes must approve, in which order, for which values. Requisitions are released with M E five four N for one document or M E five five for many. Purchase orders with M E two nine N or M E two eight. The newer S/4HANA approach is flexible workflow. It's configured in Fiori apps, with conditions, such as value above five thousand euros, and steps, such as the manager then the head of purchasing. Approvers act in the Fiori app My Inbox, which also works on mobile. A company uses one approach or the other per document type, so check before you teach. For end users, approval training is mostly how to approve in My Inbox. For buyers, it's why is my purchase order blocked, and who do I chase?",
+      "keyTerms": [
+        ["Release strategy", "Classic classification-based approval for PRs and POs"],
+        ["CEBAN / CEKKO", "Communication structures for PR / PO release characteristics"],
+        ["Release code", "Approver level in a release strategy"],
+        ["ME29N / ME28", "Release PO single / collective"],
+        ["Flexible workflow", "S/4HANA Fiori-configured approval; approvers use My Inbox"]
+      ],
+      "tryIt": [
+        { "task": "Create a PO above the approval threshold in your system and check the Release strategy tab in ME23N (if it exists)." },
+        { "task": "Release it with ME29N, or approve it in My Inbox if flexible workflow is active." }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Output: sending documents to suppliers",
+      "minutes": 30,
+      "body": "<h3>Two output frameworks</h3><ul><li><strong>Classic message determination (NAST)</strong>: output types such as <strong>NEU</strong> (new PO) configured with <code>NACE</code>; condition records with <code>MN04</code>; medium print, email, EDI</li><li><strong>S/4HANA Output Management</strong>: based on BRF+ rules, Fiori-friendly forms and email. Default in many new S/4HANA implementations for purchase orders</li></ul><h3>In practice</h3><ul><li>Output appears on the PO under <em>Messages</em> (ME21N) or the <em>Output Management</em> section (Fiori)</li><li>Status: not processed, successfully processed, error</li><li>Re-send or print with <code>ME9F</code> (classic) or from the PO</li><li>Changes to a PO can trigger change output</li></ul><h3>Other outputs</h3><p>RFQs, contracts, scheduling agreement schedules, reminders and return delivery notes all use output too.</p><p class='tip'>Check output status first when a supplier says 'we never received the PO'. It's the most common support call in purchasing.</p>",
+      "narration": "Purchase orders reach suppliers through output, and S/4HANA has two output frameworks. The classic one is message determination, where output types such as N E U, for a new purchase order, are configured in N A C E, with condition records maintained in M N zero four. The medium can be print, email or E D I. The newer framework is S/4HANA Output Management, based on B R F plus rules, with Fiori-friendly forms and email. It's the default for purchase orders in many new implementations. In practice, output appears on the purchase order under messages, or in the output management section in Fiori. Each output has a status: not processed, successfully processed, or error. You can re-send or print with M E nine F in the classic framework, or directly from the purchase order. Changes to an order can trigger change output too. And output isn't just for purchase orders: R F Qs, contracts, schedule lines, reminders and return delivery notes all use it. A support tip: when a supplier says they never received the order, check the output status first. It's the most common support call in purchasing.",
+      "keyTerms": [
+        ["Output type NEU", "Classic output type for a new purchase order"],
+        ["NACE", "Classic output (message) configuration"],
+        ["Output Management", "S/4HANA BRF+-based output framework"],
+        ["ME9F", "Send/print PO messages (classic)"]
+      ],
+      "tryIt": [
+        { "task": "Open your PO and find its output/messages. Check the status." },
+        { "task": "Preview the PO form (print preview) and identify where header and item data appear." },
+        { "task": "Trainer kit: script an 'approval workflow demo' from PO creation to approval to output." }
+      ]
+    }
+  ],
+  "flashcards": [
+    ["Standard purchasing calculation schema", "RM0000"],
+    ["Search order of condition tables", "Access sequence"],
+    ["Percentage discount condition type", "RA01"],
+    ["Absolute freight condition type", "FRB1"],
+    ["Cash discount condition type", "SKTO"],
+    ["Create condition records", "MEK1"],
+    ["Schema is determined by…", "Supplier schema group + purchasing org schema group"],
+    ["PR release characteristics structure", "CEBAN"],
+    ["PO release characteristics structure", "CEKKO"],
+    ["Release PO single / collective", "ME29N / ME28"],
+    ["Release PR single / collective", "ME54N / ME55"],
+    ["Fiori app for approvers", "My Inbox"],
+    ["Classic new PO output type", "NEU"],
+    ["Classic output configuration", "NACE"]
+  ],
+  "quiz": [
+    { "q": "What defines the order in which condition tables are searched?", "options": ["Calculation schema", "Access sequence", "Condition type", "Schema group"], "answer": 1, "explain": "The access sequence searches tables from most to least specific." },
+    { "q": "The calculation schema for a PO is determined by…", "options": ["Material type", "Supplier and purchasing org schema groups", "Plant", "Movement type"], "answer": 1, "explain": "Schema determination combines the two schema groups." },
+    { "q": "Which communication structure holds PO release characteristics?", "options": ["CEBAN", "CEKKO", "EKKO", "BSX"], "answer": 1, "explain": "CEKKO for POs; CEBAN for PRs." },
+    { "q": "Approvers using flexible workflow act in…", "options": ["ME29N only", "My Inbox", "MIRO", "NACE"], "answer": 1, "explain": "Flexible workflow tasks appear in the Fiori My Inbox app." },
+    { "q": "A price of €10 from 1 unit and €9 from 100 units is a…", "options": ["Validity period", "Scale", "Manual condition", "Schema"], "answer": 1, "explain": "Scales vary price by quantity or value." },
+    { "q": "Which transaction releases many POs at once (classic)?", "options": ["ME29N", "ME28", "ME55", "ME54N"], "answer": 1, "explain": "ME28 = collective PO release; ME55 = collective PR release." },
+    { "q": "A supplier never received a PO. What do you check first?", "options": ["The GR", "The output status", "The info record", "The release strategy configuration"], "answer": 1, "explain": "Output status shows whether the PO was transmitted." }
+  ],
+  "trainerNotes": {
+    "howToTeach": [
+      "Pizza analogy for pricing; then open a real PO's conditions tab",
+      "Identify early whether the client uses release strategies or flexible workflow",
+      "Show an approval on a phone with My Inbox if possible"
+    ],
+    "commonMistakes": [
+      "Changing price manually on the PO instead of fixing the info record",
+      "Not understanding why a PO can't be sent (not yet released)",
+      "Ignoring output errors"
+    ],
+    "demoScript": [
+      "ME23N: conditions tab and analysis",
+      "ME12: add a scale; ME21N: show price change by quantity",
+      "Create a high-value PO, show block, release/approve",
+      "Show output status and preview"
+    ]
+  }
+}

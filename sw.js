@@ -1,5 +1,5 @@
 // Network-first for content, cache fallback for offline use.
-const CACHE = 'sapmm-v1';
+const CACHE = 'sapmm-v2';
 const CORE = ['./', 'index.html', 'styles.css', 'app.js', 'manifest.json', 'content/course.json', 'assets/icon.svg'];
 
 self.addEventListener('install', e => {

@@ -1,0 +1,150 @@
+{
+  "id": 6,
+  "title": "Inventory Management",
+  "intro": "Everything that moves stock: goods receipts, goods issues, transfers, stock types, special stocks and physical inventory.",
+  "objectives": [
+    "Read stock by stock type and special stock",
+    "Use the main movement types correctly",
+    "Post goods issues and transfer postings",
+    "Run a physical inventory"
+  ],
+  "lessons": [
+    {
+      "id": 1,
+      "title": "Stock types, special stocks and stock overview",
+      "minutes": 30,
+      "body": "<h3>Stock types</h3><ul><li><strong>Unrestricted-use</strong>: freely available</li><li><strong>Quality inspection</strong>: waiting for quality check; can't be consumed</li><li><strong>Blocked</strong>: damaged or disputed; can't be consumed</li></ul><p>All three are valuated: they count in the stock value.</p><h3>Special stocks</h3><table><tr><th>Indicator</th><th>Special stock</th></tr><tr><td>K</td><td>Supplier consignment</td></tr><tr><td>O</td><td>Material provided to supplier (subcontracting)</td></tr><tr><td>E</td><td>Sales order stock</td></tr><tr><td>Q</td><td>Project stock</td></tr></table><h3>Displaying stock</h3><ul><li><code>MMBE</code> stock overview (all levels for one material)</li><li><code>MB52</code> warehouse stocks for many materials</li><li><code>MB51</code> material document list (history of movements)</li><li><code>MB5B</code> stock on a past posting date</li><li>Fiori: <em>Stock – Single Material</em>, <em>Stock – Multiple Materials</em>, <em>Material Documents Overview</em></li></ul><p class='tip'>In S/4HANA all material documents are stored in one table, MATDOC, which is why stock reports are so much faster than in ECC.</p>",
+      "narration": "Stock in SAP has three main stock types. Unrestricted use is freely available. Quality inspection is stock waiting for a quality check, and it can't be consumed. Blocked stock is damaged or disputed, and can't be consumed either. All three count in the stock value. On top of that, there are special stocks, stock with a special owner or purpose. K is supplier consignment stock, which the supplier still owns. O is material provided to a supplier for subcontracting. E is sales order stock, and Q is project stock. To display stock, use M M B E, the stock overview, which shows every level for one material. M B five two lists warehouse stocks for many materials. M B five one lists material documents, the history of movements. And M B five B shows stock at a past posting date. In Fiori, the equivalents are the Stock Single Material and Stock Multiple Materials apps. One S/4HANA fact worth knowing: all material documents now live in a single table called MATDOC, which is why stock reports are so much faster than in the old system.",
+      "keyTerms": [
+        ["Unrestricted-use stock", "Freely available stock"],
+        ["Quality inspection stock", "Stock awaiting inspection; not usable"],
+        ["Blocked stock", "Stock not usable, e.g. damaged"],
+        ["Special stock K / O / E / Q", "Consignment / provided to supplier / sales order / project"],
+        ["MMBE", "Stock overview for one material"]
+      ],
+      "tryIt": [
+        { "task": "Run MMBE for your material and identify each stock type." },
+        { "task": "Run MB51 for your material and list all movements so far." }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Movement types",
+      "minutes": 40,
+      "body": "<p>Every goods movement has a 3-digit <strong>movement type</strong> that controls stock update, accounting and allowed fields. Reversal = movement type <strong>+1</strong> (e.g. 101 → 102).</p><table><tr><th>Type</th><th>Meaning</th></tr><tr><td>101</td><td>GR for purchase order</td></tr><tr><td>103 / 105</td><td>GR into GR blocked stock / release from it</td></tr><tr><td>122</td><td>Return delivery to supplier</td></tr><tr><td>201</td><td>Goods issue to cost centre</td></tr><tr><td>261</td><td>Goods issue to order (production/maintenance)</td></tr><tr><td>301</td><td>Transfer plant to plant (one step)</td></tr><tr><td>311</td><td>Transfer storage location to storage location (one step)</td></tr><tr><td>313 / 315</td><td>Storage location transfer in two steps</td></tr><tr><td>321</td><td>Quality inspection → unrestricted</td></tr><tr><td>343 / 344</td><td>Blocked ↔ unrestricted</td></tr><tr><td>501</td><td>GR without PO</td></tr><tr><td>551</td><td>Scrapping</td></tr><tr><td>561</td><td>Initial stock entry (go-live)</td></tr><tr><td>701 / 702</td><td>Physical inventory differences (gain / loss)</td></tr></table><p>Configuration of movement types: <code>OMJJ</code>. Don't change standard ones; copy them.</p><p class='tip'>Turn this table into your trainer quick-reference card. It's the document end users keep on their desk.</p>",
+      "narration": "Every goods movement has a three-digit movement type. It controls how stock is updated, what accounting entries are made, and which fields are allowed. A handy rule: the reversal is usually the movement type plus one, so one zero one is reversed by one zero two. Here are the ones to know. One zero one: goods receipt for a purchase order. One zero three and one zero five: receipt into goods receipt blocked stock, and release from it. One two two: return delivery to the supplier. Two zero one: goods issue to a cost centre. Two six one: goods issue to an order, for production or maintenance. Three zero one: plant to plant transfer in one step. Three one one: storage location to storage location in one step. Three one three and three one five: the same transfer in two steps. Three two one: quality inspection to unrestricted. Three four three and three four four: blocked to unrestricted and back. Five zero one: goods receipt without a purchase order. Five five one: scrapping. Five six one: initial stock entry, used at go-live. And seven zero one and seven zero two: physical inventory differences. Movement types are configured in O M J J, but you never change the standard ones: you copy them. Turn this list into a quick-reference card. It's the document end users keep on their desk.",
+      "keyTerms": [
+        ["Movement type", "3-digit key controlling a goods movement"],
+        ["Reversal rule", "Reversal = movement type + 1 (101 → 102)"],
+        ["201 / 261", "Goods issue to cost centre / order"],
+        ["311", "Storage location transfer, one step"],
+        ["561", "Initial stock entry"]
+      ],
+      "tryIt": [
+        { "task": "Post 561 to put initial stock of your material into a storage location (if allowed in your practice system)." },
+        { "task": "Post a 201 goods issue to a cost centre in MIGO and display the accounting document." }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Goods receipt variants and goods issues",
+      "minutes": 35,
+      "body": "<h3>GR variants</h3><ul><li><strong>Into quality inspection</strong>: choose stock type Q in MIGO, or automatic if QM is active</li><li><strong>Into GR blocked stock (103)</strong>: goods accepted conditionally, not yet valuated; release with <strong>105</strong> or return with 124</li><li><strong>Partial deliveries</strong> and <strong>delivery completed</strong> indicator</li><li><strong>Under/overdelivery tolerances</strong> from the PO/material/info record</li></ul><h3>Cancellation vs return</h3><table><tr><th></th><th>Cancellation (102)</th><th>Return delivery (122)</th></tr><tr><td>When</td><td>Posting error</td><td>Goods physically sent back</td></tr><tr><td>Reason for movement</td><td>Not required</td><td>Required</td></tr><tr><td>Return delivery note</td><td>No</td><td>Yes</td></tr></table><h3>Goods issues</h3><ul><li><strong>201</strong> to cost centre (e.g. consumables taken by a department)</li><li><strong>261</strong> to production or maintenance order</li><li><strong>551</strong> scrapping</li><li>Accounting: credit inventory, debit consumption (or scrapping) account</li><li>In MIGO: action <em>Goods Issue</em>, reference <em>Other</em></li></ul><p class='tip'>Show the 102 vs 122 table every time. Using the wrong one is the classic inventory mistake that auditors notice.</p>",
+      "narration": "Goods receipts come in variants. You can post into quality inspection, either by choosing the stock type in M I G O, or automatically if quality management is active. You can post into goods receipt blocked stock with movement type one zero three, when goods are accepted only conditionally. That stock isn't valued yet; you release it with one zero five, or return it. And tolerances from the order, material or info record decide how much under- or over-delivery is allowed. Now, the classic confusion: cancellation versus return delivery. Cancellation, movement type one zero two, is for posting errors: the goods never moved. Return delivery, one two two, is for goods physically sent back to the supplier. It needs a reason for the movement and prints a return delivery note. On the issue side, two zero one issues goods to a cost centre, for example consumables taken by a department. Two six one issues to a production or maintenance order. And five five one is scrapping. In accounting, a goods issue credits inventory and debits a consumption or scrapping account. In M I G O, you choose goods issue, reference other. Show the cancellation versus return table every time: using the wrong one is the classic inventory mistake auditors notice.",
+      "keyTerms": [
+        ["GR blocked stock (103)", "Conditionally accepted goods, not yet valuated"],
+        ["105", "Release from GR blocked stock"],
+        ["Reason for movement", "Required for return deliveries"],
+        ["551", "Scrapping"]
+      ],
+      "tryIt": [
+        { "task": "Create a PO and post GR with 103, then release it with 105." },
+        { "task": "Post a return delivery (122) for part of a GR with a reason for movement." },
+        { "task": "Scrap one unit with 551 and check the accounting document." }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Transfer postings and stock transfers",
+      "minutes": 35,
+      "body": "<h3>Transfer postings (change of status or location)</h3><ul><li><strong>311</strong>: storage location → storage location in one step</li><li><strong>313 / 315</strong>: two steps (removal, then placement); stock is 'in transfer' in between</li><li><strong>321</strong>: quality inspection → unrestricted</li><li><strong>343 / 344</strong>: blocked ↔ unrestricted</li><li><strong>411 K</strong>: consignment → own stock (Module 9)</li></ul><h3>Plant-to-plant transfers</h3><ul><li><strong>301</strong>: one step, no document planning</li><li><strong>303 / 305</strong>: two steps</li><li><strong>Stock transport order (STO)</strong>: a PO with document type <strong>UB</strong> and item category <strong>U</strong>. Allows planning, delivery, shipping and stock in transit; GI 641 with delivery, GR 101 at the receiving plant</li></ul><h3>Value impact</h3><ul><li>Within one plant (311): no value change</li><li>Between plants: value moves from one valuation area to another, possibly at different prices</li></ul><p class='tip'>Ask learners: “Is this a physical move or just a status change?” It points them to the right movement type.</p>",
+      "narration": "Transfer postings change the status or the location of stock. Three one one moves stock between storage locations in one step. Three one three and three one five do it in two steps, with the stock in transfer in between. Three two one moves stock from quality inspection to unrestricted. Three four three and three four four move between blocked and unrestricted. And four one one with special stock K moves consignment stock into your own stock, which we'll see in module nine. For transfers between plants, three zero one does it in one step, and three zero three and three zero five in two steps. For a planned transfer, you use a stock transport order: a purchase order with document type U B and item category U. It supports planning, a delivery, shipping, and stock in transit. The goods issue at the supplying plant uses six four one, and the receiving plant posts a one zero one. What about value? Within one plant, a storage location transfer doesn't change value. Between plants, value moves from one valuation area to another, possibly at different prices. A good question for learners: is this a physical move, or just a status change? That points them straight to the right movement type.",
+      "keyTerms": [
+        ["Transfer posting", "Change of stock type, location or ownership"],
+        ["313 / 315", "Two-step storage location transfer"],
+        ["Stock transport order", "PO type UB, item category U, for plant transfers"],
+        ["Stock in transit", "Stock issued by one plant and not yet received by the other"]
+      ],
+      "tryIt": [
+        { "task": "Move 5 units between two storage locations with 311 and check MMBE." },
+        { "task": "Move 2 units from unrestricted to blocked (344) and back (343)." },
+        { "task": "If two plants exist, transfer 1 unit with 301." }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Physical inventory",
+      "minutes": 30,
+      "body": "<p>Book stock must match physical stock. Companies count at year-end or continuously.</p><h3>Methods</h3><ul><li><strong>Periodic (annual)</strong>: everything counted on a key date; postings blocked during the count</li><li><strong>Cycle counting</strong>: materials counted at intervals by importance (ABC: A counted most often)</li><li><strong>Continuous</strong> and <strong>sampling</strong> methods</li></ul><h3>Process</h3><ol><li><code>MI01</code> create physical inventory document (optionally set posting block)</li><li>Print count sheets</li><li><code>MI04</code> enter count</li><li><code>MI20</code> difference list: check before posting</li><li><code>MI07</code> post differences (movement types <strong>701</strong> gain / <strong>702</strong> loss)</li></ol><p>Shortcuts: <code>MI10</code> creates, counts and posts in one step. Fiori: <em>Manage Physical Inventory Documents</em>, <em>Enter Inventory Count</em>.</p><h3>Accounting</h3><p>Differences post to an inventory difference account. Large differences usually need approval before MI07.</p><p class='tip'>Run a mini stock count in class with real objects (pens, notebooks). Learners remember the process far better.</p>",
+      "narration": "The stock in the system must match the stock on the shelves, so companies count. Periodic, or annual, inventory counts everything on a key date, and postings are blocked during the count. Cycle counting counts materials at intervals according to their importance: A items most often, C items least. There are also continuous and sampling methods. The process runs in five steps. Create a physical inventory document with M I zero one, optionally with a posting block. Print the count sheets. Enter the count with M I zero four. Check the difference list with M I two zero. And post the differences with M I zero seven, which uses movement type seven zero one for a gain and seven zero two for a loss. There's also M I one zero, which creates, counts and posts in one step. Differences post to an inventory difference account in finance, and large differences usually need approval before posting. Here's a classroom idea: run a mini stock count with real objects like pens and notebooks. Learners remember the process far better.",
+      "keyTerms": [
+        ["Cycle counting", "Counting by ABC importance at set intervals"],
+        ["MI01 / MI04 / MI07", "Create document / enter count / post differences"],
+        ["MI20", "Difference list"],
+        ["701 / 702", "Inventory difference gain / loss"]
+      ],
+      "tryIt": [
+        { "task": "Create a physical inventory document for your material (MI01), enter a count 1 unit lower than book stock (MI04), check MI20, post with MI07." },
+        { "task": "Check MB51: find the 702 movement." },
+        { "task": "Trainer kit: produce the movement-type quick-reference card from lesson 2." }
+      ]
+    }
+  ],
+  "flashcards": [
+    ["Three stock types", "Unrestricted, quality inspection, blocked"],
+    ["Special stock K", "Supplier consignment"],
+    ["Special stock O", "Material provided to supplier (subcontracting)"],
+    ["Stock overview transaction", "MMBE"],
+    ["Material document list", "MB51"],
+    ["Stock at past date", "MB5B"],
+    ["S/4HANA material document table", "MATDOC"],
+    ["Goods issue to cost centre", "201"],
+    ["Goods issue to order", "261"],
+    ["Storage location transfer one step", "311"],
+    ["QI → unrestricted", "321"],
+    ["GR blocked stock / release", "103 / 105"],
+    ["Scrapping", "551"],
+    ["Initial stock entry", "561"],
+    ["Inventory differences", "701 gain / 702 loss"],
+    ["Stock transport order document type", "UB"],
+    ["Post inventory differences", "MI07"]
+  ],
+  "quiz": [
+    { "q": "Which stock type can be freely consumed?", "options": ["Quality inspection", "Blocked", "Unrestricted-use", "GR blocked"], "answer": 2, "explain": "Only unrestricted-use stock is freely available." },
+    { "q": "Reversal of movement type 261 is…", "options": ["262", "260", "201", "102"], "answer": 0, "explain": "Reversal = movement type + 1." },
+    { "q": "Which movement moves stock between two storage locations in one step?", "options": ["301", "311", "321", "551"], "answer": 1, "explain": "311 = storage location to storage location, one step." },
+    { "q": "Goods received with 103 are…", "options": ["Unrestricted and valuated", "In GR blocked stock, not valuated", "Scrapped", "In quality inspection and valuated"], "answer": 1, "explain": "103 posts into GR blocked stock, which isn't valuated until released with 105." },
+    { "q": "Special stock indicator O means…", "options": ["Own stock", "Order stock", "Material provided to supplier", "Consignment"], "answer": 2, "explain": "O = stock provided to a subcontractor." },
+    { "q": "Which transaction posts physical inventory differences?", "options": ["MI01", "MI04", "MI07", "MI20"], "answer": 2, "explain": "MI07 posts differences; MI20 lists them." },
+    { "q": "A planned plant-to-plant transfer with delivery uses…", "options": ["Movement 311", "A stock transport order (UB)", "A contract", "Movement 551"], "answer": 1, "explain": "STOs (document type UB, item category U) support planning, delivery and stock in transit." },
+    { "q": "Which movement type is used at go-live to load opening stock?", "options": ["101", "501", "561", "701"], "answer": 2, "explain": "561 = initial entry of stock balances." }
+  ],
+  "trainerNotes": {
+    "howToTeach": [
+      "Use MMBE before and after every movement so learners see the effect",
+      "Hand out the movement-type card and refer to it constantly",
+      "Run a real mini stock count for physical inventory"
+    ],
+    "commonMistakes": [
+      "102 vs 122 confusion",
+      "Issuing from the wrong storage location",
+      "Posting inventory differences without checking MI20 first"
+    ],
+    "demoScript": [
+      "MMBE: show stock types",
+      "MIGO: 311 transfer, 344 to blocked, 201 issue",
+      "MB51: show the movement history",
+      "MI01 → MI04 → MI07: quick count with a difference"
+    ]
+  }
+}

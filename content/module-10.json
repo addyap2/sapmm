@@ -1,0 +1,123 @@
+{
+  "id": 10,
+  "title": "Reporting, Fiori Analytics & Exam Revision",
+  "intro": "The reports people actually use, what changed in S/4HANA, how to approach C_TS452, and how to package this course as a sellable training module.",
+  "objectives": [
+    "Use the main MM reports and Fiori analytical apps",
+    "Explain the key S/4HANA simplifications in MM",
+    "Prepare for the C_TS452 system-based assessment",
+    "Package the course as a sellable training module"
+  ],
+  "lessons": [
+    {
+      "id": 1,
+      "title": "Reports and Fiori analytics",
+      "minutes": 35,
+      "body": "<h3>Purchasing reports</h3><ul><li><code>ME2M / ME2L / ME2N</code> POs by material / supplier / number</li><li><code>ME80FN</code> general purchasing analysis</li><li><code>ME5A</code> requisitions; <code>ME3L/ME3M</code> outline agreements</li></ul><h3>Inventory reports</h3><ul><li><code>MMBE</code> stock overview; <code>MB52</code> warehouse stock; <code>MB51</code> material documents</li><li><code>MB5B</code> stock on posting date; <code>MB5T</code> stock in transit; <code>ME2O</code> subcontracting stock</li></ul><h3>Invoice reports</h3><ul><li><code>MIR5</code> invoice list; <code>MB5S</code> GR/IR balances; <code>MRBR</code> blocked invoices</li></ul><h3>Fiori analytical apps (names vary by release)</h3><ul><li><strong>Procurement overview page</strong>: tiles/cards for spend, open POs, overdue items</li><li><em>Monitor Purchase Order Items</em>, <em>Purchase Order Average Delivery Time</em>, <em>Off-Contract Spend</em>, <em>Supplier Evaluation</em></li><li><em>Stock – Multiple Materials</em>, <em>Inventory KPI Analysis</em>, <em>Material Documents Overview</em></li></ul><h3>ALV tips for any classic report</h3><ul><li>Filter, sort, sum, subtotal; change layout and <strong>save layouts</strong></li><li>Export to spreadsheet</li></ul><p class='tip'>Teaching end users to save their own ALV layout is a five-minute win they'll thank you for.</p>",
+      "narration": "Let's round up the reports people actually use. For purchasing: M E two M, two L and two N, for orders by material, supplier and number; M E eight zero F N for general analysis; M E five A for requisitions; and M E three L or three M for outline agreements. For inventory: M M B E for the stock overview, M B five two for warehouse stock, M B five one for material documents, M B five B for stock on a past date, M B five T for stock in transit, and M E two O for subcontracting stock. For invoices: M I R five for the invoice list, M B five S for G R I R balances, and M R B R for blocked invoices. In Fiori, look for the procurement overview page, with cards for spend, open orders and overdue items, and apps such as Monitor Purchase Order Items, Off-Contract Spend and Supplier Evaluation, plus Stock Multiple Materials and Inventory K P I Analysis. Names vary by release, so check your system. And for any classic report, teach the A L V tools: filter, sort, sum, subtotal, change the layout, save the layout, and export to a spreadsheet. Teaching end users to save their own layout is a five-minute win they'll thank you for.",
+      "keyTerms": [
+        ["ME80FN", "General analysis of purchasing documents"],
+        ["MB5B", "Stock on posting date"],
+        ["MIR5", "Invoice list"],
+        ["ALV", "SAP list viewer: filter, sort, sum, layouts, export"],
+        ["Overview page", "Fiori dashboard of cards for a business area"]
+      ],
+      "tryIt": [
+        { "task": "Run ME2L for your supplier, add a subtotal by material, save the layout as your default." },
+        { "task": "Find the procurement overview page or Monitor Purchase Order Items app in your Fiori launchpad." }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "S/4HANA simplifications in MM",
+      "minutes": 30,
+      "body": "<p>What changed from ECC: essential for trainers teaching migration projects.</p><table><tr><th>Area</th><th>S/4HANA</th></tr><tr><td>Suppliers</td><td>Business Partner mandatory; XK01 etc. redirect to BP</td></tr><tr><td>Material documents</td><td>Single table <strong>MATDOC</strong>; no stock aggregate tables to update; faster</td></tr><tr><td>Goods movements</td><td>Old MB01/MB1A/MB1B/MB1C replaced by <strong>MIGO</strong></td></tr><tr><td>Material number</td><td>Up to 40 characters</td></tr><tr><td>MRP</td><td><strong>MRP Live</strong> (MD01N) on HANA</td></tr><tr><td>Valuation</td><td>Material ledger mandatory</td></tr><tr><td>Accounting</td><td>Universal Journal (table ACDOCA): FI and CO in one line item</td></tr><tr><td>UI</td><td>Fiori launchpad, role-based apps, overview pages</td></tr><tr><td>Approvals</td><td>Flexible workflow alongside classic release strategies</td></tr><tr><td>Output</td><td>Output Management (BRF+) alongside NAST</td></tr></table><p>SAP publishes the full list in the <strong>Simplification List</strong> for each release.</p><p class='tip'>Migration training sessions often start with “what changed for me?”. This table answers it.</p>",
+      "narration": "If you train on migration projects, users will always ask: what changed for me? Here's the answer for MM. Suppliers are now business partners, and the old vendor transactions redirect to B P. Material documents live in a single table, MATDOC, which makes stock reporting much faster. The old goods movement transactions, M B zero one and the M B one family, are replaced by M I G O. Material numbers can be up to forty characters. Planning uses M R P Live, running inside HANA. The material ledger is mandatory for valuation. Accounting uses the Universal Journal, table A C D O C A, where finance and controlling share one line item. The user interface is the Fiori launchpad, with role-based apps and overview pages. Approvals can use flexible workflow alongside classic release strategies. And output can use S/4HANA output management alongside the classic message framework. SAP publishes the complete list in the simplification list for each release. Keep this table handy: migration training sessions often open with exactly this question.",
+      "keyTerms": [
+        ["MATDOC", "Single S/4HANA table for material documents"],
+        ["ACDOCA", "Universal Journal table"],
+        ["Simplification List", "SAP's official list of changes per S/4HANA release"],
+        ["MB1A/MB1B/MB1C", "Old goods movement transactions replaced by MIGO"]
+      ],
+      "tryIt": [
+        { "task": "Try MB1A in your system and note the result." },
+        { "task": "Trainer kit: turn the simplification table into a one-slide 'What changed for you' handout." }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Preparing for C_TS452",
+      "minutes": 30,
+      "body": "<h3>The assessment</h3><ul><li><strong>SAP Certified – SAP S/4HANA Cloud Private Edition, Sourcing and Procurement</strong> (C_TS452)</li><li><strong>System-based</strong>: you perform tasks in a real system, not just answer multiple-choice questions</li><li>About 3 hours; pass mark around 76% (check learning.sap.com for current details)</li><li>Booked via SAP Learning / Certification Hub; annual 'stay certified' assessment</li></ul><h3>Topic coverage (map to this course)</h3><ul><li>Enterprise structure → Module 1</li><li>Master data → Modules 2–3</li><li>Procurement processes → Modules 4–5</li><li>Inventory management → Module 6</li><li>Invoice verification & account determination → Module 7</li><li>Pricing, release, output → Module 8</li><li>MRP, special procurement, valuation → Module 9</li></ul><h3>Strategy</h3><ol><li>Redo every 'Try it' task without notes</li><li>Take every module quiz until you score 90%+</li><li>Practise configuration paths in SPRO (read-only first)</li><li>Use SAP's official learning journey and sample questions</li><li>In the exam: do tasks you know first, flag the others, watch the clock</li></ol><p class='tip'>Always check the official exam page for the current topic areas and weightings before booking.</p>",
+      "narration": "The certification you're aiming for is SAP Certified, S/4HANA Cloud Private Edition, Sourcing and Procurement, code C T S four five two. It's now system-based, which means you perform tasks in a real system rather than just answering multiple-choice questions. It lasts about three hours, the pass mark is around seventy-six percent, and you'll need to complete a stay-certified assessment each year. Always check learning dot sap dot com for the current details. The topics map neatly onto this course: enterprise structure in module one, master data in modules two and three, procurement processes in four and five, inventory in six, invoice verification and account determination in seven, pricing, release and output in eight, and planning, special procurement and valuation in nine. Here's a strategy. Redo every try-it task without notes. Take every module quiz until you score above ninety percent. Practise configuration paths in S P R O. Use SAP's official learning journey and sample questions. And in the exam itself, do the tasks you know first, flag the others, and watch the clock.",
+      "keyTerms": [
+        ["C_TS452", "SAP S/4HANA Cloud Private Edition, Sourcing and Procurement certification"],
+        ["System-based assessment", "Exam tasks performed in a live SAP system"],
+        ["Stay certified", "Annual assessment to keep the certification valid"]
+      ],
+      "tryIt": [
+        { "task": "Retake all module quizzes 1–9 and note any module under 90%." },
+        { "task": "Redo the P2P cycle (Module 4) from memory in under 20 minutes." }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Packaging your sellable module",
+      "minutes": 30,
+      "body": "<h3>Products you can sell</h3><ul><li><strong>End-user training</strong> for companies migrating to S/4HANA: 1–3 days, role-based (buyer, warehouse, accounts payable)</li><li><strong>Key-user training</strong>: 3–5 days, deeper, includes basic configuration awareness</li><li><strong>Online self-study</strong>: this site, with accounts and payments added later</li></ul><h3>Training-centre requirements (France)</h3><ul><li>Clear <strong>objectives</strong>, programme, duration, prerequisites, assessment methods</li><li>Pre- and post-training <strong>assessment</strong> (module quizzes work well)</li><li>Attendance and completion evidence, satisfaction survey (Qualiopi indicators)</li></ul><h3>Your kit from this course</h3><ul><li>Org-structure diagram, navigation cheat sheet (M1)</li><li>Supplier creation job aid (M2), product master field guide (M3)</li><li>P2P demo scenario + workbook (M4), purchasing exercises (M5)</li><li>Movement-type card (M6), invoice-matching exercises (M7)</li><li>Approval demo (M8), MRP walkthrough (M9), 'What changed' handout (M10)</li></ul><p class='tip'>Start selling with the 1-day 'P2P in S/4HANA for end users'. It's the most in-demand format and uses Modules 1, 2 and 4.</p>",
+      "narration": "Let's finish by turning this course into something you can sell. There are three obvious products. First, end-user training for companies migrating to S/4HANA: one to three days, role-based, for buyers, warehouse staff or accounts payable. Second, key-user training: three to five days, deeper, with some configuration awareness. Third, online self-study, which is this site, with accounts and payments added later. If you sell through French training centres, you'll need clear objectives, a programme, duration, prerequisites and assessment methods; a pre- and post-training assessment, and the module quizzes work well for that; plus attendance evidence and a satisfaction survey, to meet Qualiopi requirements. And you've been building your kit all along: the org structure diagram and navigation cheat sheet, the supplier job aid, the product master field guide, the P2P demo and workbook, purchasing exercises, the movement type card, invoice matching exercises, the approval demo, the M R P walkthrough, and the what changed handout. My advice: start selling with a one-day course, P2P in S/4HANA for end users. It's the most in-demand format, and it uses modules one, two and four.",
+      "keyTerms": [
+        ["End-user training", "Role-based, process-focused training for daily users"],
+        ["Key-user training", "Deeper training for super-users who support colleagues"],
+        ["Qualiopi", "French quality certification for funded training providers"]
+      ],
+      "tryIt": [
+        { "task": "Write a one-page programme for '1-day P2P in S/4HANA for end users': objectives, schedule, prerequisites, assessment." },
+        { "task": "Collect all your trainer-kit outputs from Modules 1–10 into one folder." }
+      ]
+    }
+  ],
+  "flashcards": [
+    ["General purchasing analysis", "ME80FN"],
+    ["Invoice list", "MIR5"],
+    ["Blocked invoices", "MRBR"],
+    ["Stock at a past date", "MB5B"],
+    ["S/4 material document table", "MATDOC"],
+    ["Universal Journal table", "ACDOCA"],
+    ["Replaced MB1A/MB1B/MB1C", "MIGO"],
+    ["Official list of S/4HANA changes", "Simplification List"],
+    ["C_TS452 format", "System-based assessment, ~3 hours"],
+    ["C_TS452 pass mark (approx.)", "76%"],
+    ["Best first product to sell", "1-day P2P in S/4HANA for end users"]
+  ],
+  "quiz": [
+    { "q": "Which table stores material documents in S/4HANA?", "options": ["MKPF", "MSEG", "MATDOC", "ACDOCA"], "answer": 2, "explain": "MATDOC replaced MKPF/MSEG and aggregate tables." },
+    { "q": "Which transaction replaces MB1A in S/4HANA?", "options": ["MIRO", "MIGO", "MMBE", "ME21N"], "answer": 1, "explain": "MIGO handles all goods movements." },
+    { "q": "Which is mandatory in S/4HANA?", "options": ["Actual costing", "Material ledger", "Release strategies", "NAST output"], "answer": 1, "explain": "Material ledger valuation is mandatory; actual costing is optional." },
+    { "q": "Which report shows GR/IR balances?", "options": ["MB5S", "MB52", "ME2M", "MD04"], "answer": 0, "explain": "MB5S = GR/IR balance list." },
+    { "q": "A user wants to keep their own column setup in ME2M. What do you teach?", "options": ["Change the program", "Save an ALV layout", "Use SPRO", "Export every time"], "answer": 1, "explain": "ALV layouts can be saved per user." },
+    { "q": "Revision: purchasing group is assigned to…", "options": ["Plant", "Purchasing org", "Company code", "No org unit"], "answer": 3, "explain": "Purchasing groups are not assigned to org units (Module 1)." },
+    { "q": "Revision: GR accounting entry for stock material", "options": ["Dr GR/IR, Cr inventory", "Dr inventory, Cr GR/IR", "Dr supplier, Cr GR/IR", "Dr consumption, Cr supplier"], "answer": 1, "explain": "Module 4: GR debits inventory, credits GR/IR." },
+    { "q": "Revision: role for supplier purchasing data", "options": ["FLVN00", "FLVN01", "000000", "FLCU00"], "answer": 1, "explain": "Module 2: FLVN01 = Supplier (purchasing)." },
+    { "q": "Revision: source determination starts with…", "options": ["Info record", "Source list", "Quota arrangement", "Contract"], "answer": 2, "explain": "Module 3: quota → source list → outline agreement → info record." },
+    { "q": "Revision: item category for subcontracting", "options": ["K", "L", "S", "U"], "answer": 1, "explain": "Module 5: L = subcontracting." },
+    { "q": "Revision: reversal of 311", "options": ["312", "310", "301", "321"], "answer": 0, "explain": "Module 6: reversal = movement type + 1." },
+    { "q": "Revision: tolerance key for price variance", "options": ["DQ", "PP", "ST", "BD"], "answer": 1, "explain": "Module 7: PP = price variance." }
+  ],
+  "trainerNotes": {
+    "howToTeach": [
+      "End every course with a report session: users love finding their own data",
+      "Use the simplification table at the start of migration courses",
+      "Use the revision quiz as the post-training assessment"
+    ],
+    "commonMistakes": [
+      "Exporting reports to spreadsheets instead of using ALV filters and layouts",
+      "Teaching ECC transactions that no longer exist in S/4HANA"
+    ],
+    "demoScript": [
+      "ME2L: filter, subtotal, save layout, export",
+      "Fiori: procurement overview page",
+      "Show MB1A redirect/unavailability and MIGO"
+    ]
+  }
+}

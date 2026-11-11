@@ -1,0 +1,151 @@
+{
+  "id": 4,
+  "title": "The Procure-to-Pay Cycle",
+  "intro": "The core process of MM, end to end: from a requirement to a paid invoice. Master this module and you can teach 80% of what end users do every day.",
+  "objectives": [
+    "Describe each step of procure-to-pay and the document it creates",
+    "Create purchase requisitions and purchase orders",
+    "Post a goods receipt and explain its effects",
+    "Post a supplier invoice and explain three-way matching"
+  ],
+  "lessons": [
+    {
+      "id": 1,
+      "title": "P2P overview and document flow",
+      "minutes": 30,
+      "body": "<h3>The cycle</h3><ol><li><strong>Requirement</strong>: a user or MRP identifies a need</li><li><strong>Purchase requisition (PR)</strong>: internal request to purchasing</li><li><strong>Source of supply</strong>: supplier chosen (info record, contract, source list, RFQ)</li><li><strong>Purchase order (PO)</strong>: legal order sent to the supplier</li><li><strong>Goods receipt (GR)</strong>: goods arrive and are posted into stock</li><li><strong>Invoice verification (IV)</strong>: supplier invoice checked against PO and GR</li><li><strong>Payment</strong>: done in FI by the payment run</li></ol><h3>Documents created</h3><table><tr><th>Step</th><th>Document</th><th>Transaction</th></tr><tr><td>PR</td><td>Purchase requisition</td><td>ME51N</td></tr><tr><td>PO</td><td>Purchase order</td><td>ME21N</td></tr><tr><td>GR</td><td>Material document + accounting document</td><td>MIGO</td></tr><tr><td>IV</td><td>Invoice document + accounting document</td><td>MIRO</td></tr><tr><td>Payment</td><td>Payment document</td><td>F110 (FI)</td></tr></table><h3>Document flow and PO history</h3><p>Every follow-on document is linked. The <strong>PO history</strong> tab on the PO item shows each GR and invoice. In Fiori, the <em>Manage Purchase Orders</em> app shows a document flow diagram.</p><p class='tip'>Draw the P2P cycle as a circle on day one and keep it on the wall. Every later topic hangs off one of its seven steps.</p>",
+      "narration": "Procure-to-pay is the heart of MM. It runs in seven steps. First, a requirement: someone, or the planning run, identifies a need. Second, a purchase requisition, an internal request to purchasing, created with M E five one N. Third, a source of supply is chosen, from an info record, a contract, a source list or a quotation. Fourth, the purchase order, the legal order sent to the supplier, created with M E two one N. Fifth, the goods receipt, when goods arrive and are posted into stock with M I G O. That creates a material document and an accounting document. Sixth, invoice verification, where the supplier's invoice is checked against the purchase order and the goods receipt, in M I R O. That creates an invoice document and another accounting document. And seventh, payment, which finance handles in the payment run. Every document is linked to the next. On the purchase order item, the P O history tab shows each goods receipt and invoice, and in Fiori the Manage Purchase Orders app shows the whole document flow. A tip for teaching: draw the cycle as a circle on day one and leave it on the wall. Every later topic hangs off one of those seven steps.",
+      "keyTerms": [
+        ["P2P", "Procure-to-pay: requirement → PR → PO → GR → IV → payment"],
+        ["Purchase requisition", "Internal request; no legal effect"],
+        ["Purchase order", "Legal order to a supplier"],
+        ["PO history", "Tab listing all GRs and invoices for a PO item"],
+        ["Material document", "Record of a goods movement"]
+      ],
+      "tryIt": [
+        { "task": "Find a completed PO in your system (ME23N) and open the PO history tab. Click through to the material document and the invoice." },
+        { "task": "Open the same PO in the Fiori app Manage Purchase Orders and view the document flow." }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Purchase requisitions",
+      "minutes": 35,
+      "body": "<p>A <strong>purchase requisition</strong> asks purchasing to buy something. It has no legal effect outside the company.</p><h3>Created by</h3><ul><li><strong>Users</strong> manually (<code>ME51N</code>, Fiori <em>Create Purchase Requisition</em> / <em>Manage Purchase Requisitions</em>)</li><li><strong>MRP</strong> automatically</li><li>Other modules, e.g. maintenance or project orders</li></ul><h3>Key item fields</h3><ul><li>Material (or short text + material group for non-stock items)</li><li>Quantity, delivery date, plant, storage location</li><li><strong>Item category</strong>: blank = standard, others in Module 5</li><li><strong>Account assignment category</strong>: blank = into stock; <strong>K</strong> cost centre, <strong>F</strong> internal order, <strong>A</strong> asset, <strong>P</strong> project</li><li>Purchasing group, desired supplier or fixed source</li></ul><h3>Stock vs consumption</h3><ul><li><strong>Stock item</strong> (no account assignment): goods go into inventory, cost hits when consumed</li><li><strong>Consumable item</strong> (with account assignment, e.g. K): cost goes straight to the cost centre at goods receipt</li></ul><p>PRs may need <strong>approval</strong> before conversion to a PO (Module 8).</p><p class='tip'>Account assignment K is the one your learners will meet most: office supplies, services and anything charged to a department.</p>",
+      "narration": "A purchase requisition asks purchasing to buy something. It's purely internal, so it has no legal effect with the supplier. Requisitions are created manually by users, with M E five one N or the Fiori app, automatically by the planning run, or by other modules such as maintenance or projects. Each item has a material, or a short text and material group for items with no material master. It also has a quantity, delivery date, plant and storage location. Then two important fields. The item category, which is blank for a standard item. And the account assignment category. Blank means the goods go into stock. K means they're charged to a cost centre, F to an internal order, A to an asset, and P to a project. This is the difference between stock items and consumable items. For a stock item, the goods go into inventory and the cost only hits when they're consumed. For a consumable item, say with account assignment K, the cost goes straight to the cost centre at goods receipt. Some requisitions need approval before they can become purchase orders, and we'll cover that in module eight. In class, focus on account assignment K: it's the one learners use most, for office supplies, services and anything charged to a department.",
+      "keyTerms": [
+        ["ME51N", "Create purchase requisition"],
+        ["Account assignment category", "Where cost goes: blank stock, K cost centre, F order, A asset, P project"],
+        ["Stock item", "Goes into inventory; no account assignment"],
+        ["Consumable item", "Charged directly to an account assignment object at GR"]
+      ],
+      "tryIt": [
+        { "task": "Create a PR with ME51N for your material into stock (no account assignment)." },
+        { "task": "Create a second PR item with account assignment K, short text 'Office chairs', a material group and a cost centre." }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Purchase orders",
+      "minutes": 40,
+      "body": "<p>The <strong>purchase order</strong> is the legal request to a supplier. Transaction <code>ME21N</code>; Fiori <em>Manage Purchase Orders</em> / <em>Create Purchase Order – Advanced</em>.</p><h3>Screen structure in ME21N</h3><ul><li><strong>Header</strong>: supplier, document type (NB = standard PO), purchasing org, purchasing group, company code, payment terms, currency</li><li><strong>Item overview</strong>: material, quantity, price, plant, delivery date</li><li><strong>Item details</strong>: tabs for delivery, invoice, conditions, account assignment, PO history</li><li><strong>Document overview</strong> (left panel): pick a PR and drag it into the PO</li></ul><h3>Creating from a requisition</h3><ul><li>In ME21N, open the Document overview, select <em>Purchase requisitions</em>, find your PR and adopt it</li><li>Or reference the PR number directly in the item</li></ul><h3>Where the data comes from</h3><table><tr><th>Field</th><th>Default source</th></tr><tr><td>Currency, payment terms, Incoterms</td><td>Supplier purchasing data</td></tr><tr><td>Price</td><td>Info record or contract</td></tr><tr><td>Description, unit</td><td>Material master</td></tr><tr><td>Quantity, date, plant</td><td>Requisition</td></tr></table><h3>Key item settings</h3><ul><li><strong>GR</strong> indicator: goods receipt expected</li><li><strong>IR</strong> indicator: invoice expected</li><li><strong>GR-based IV</strong></li></ul><p>On save, the PO is checked, given a number and sent to the supplier via <strong>output</strong> (print, email, EDI).</p><p class='tip'>Teach the traffic light: the 'Check' button in ME21N lists every error before saving. Learners love it once they know it exists.</p>",
+      "narration": "The purchase order is the legal request to a supplier. In SAP GUI, you use M E two one N. The screen has four areas. The header holds the supplier, the document type, usually N B for a standard order, the purchasing organisation, purchasing group, company code, payment terms and currency. The item overview lists each material, quantity, price, plant and delivery date. Item details has tabs for delivery, invoice, conditions, account assignment and P O history. And on the left, the document overview lets you find a requisition and adopt it into the order. Where does all the data come from? Currency, payment terms and Incoterms come from the supplier's purchasing data. The price comes from an info record or contract. The description and unit come from the material master. And the quantity, date and plant come from the requisition. On each item, check the G R indicator, meaning a goods receipt is expected; the I R indicator, meaning an invoice is expected; and G R based invoice verification. When you save, the system checks the order, assigns a number and sends it to the supplier by print, email or E D I. A practical tip: teach the check button. It lists every error before you save, and once learners know it exists, they use it constantly.",
+      "keyTerms": [
+        ["ME21N", "Create purchase order"],
+        ["Document type NB", "Standard purchase order"],
+        ["Document overview", "ME21N panel to adopt requisitions and other references"],
+        ["GR / IR indicators", "Goods receipt / invoice receipt expected for the item"],
+        ["Output", "Transmission of the PO: print, email, EDI"]
+      ],
+      "tryIt": [
+        { "task": "Convert your PR from lesson 2 into a PO in ME21N using the Document overview." },
+        { "task": "Check where the price, currency and payment terms came from (Conditions tab, header)." },
+        { "task": "Save the PO and note its number." }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Goods receipt",
+      "minutes": 35,
+      "body": "<p>When goods arrive, the warehouse posts a <strong>goods receipt</strong> against the PO. Transaction <code>MIGO</code>; Fiori <em>Post Goods Receipt for Purchasing Document</em> or <em>Post Goods Movement</em>.</p><h3>In MIGO</h3><ul><li>Action: <strong>Goods Receipt</strong>, reference: <strong>Purchase Order</strong>, enter the PO number</li><li>Movement type <strong>101</strong> (GR for PO) is proposed</li><li>Check quantity, storage location and <strong>stock type</strong> (unrestricted, quality inspection, blocked)</li><li>Tick <strong>Item OK</strong>, check, post</li></ul><h3>What happens on posting</h3><ul><li><strong>Material document</strong> created</li><li><strong>Stock</strong> increases in the storage location</li><li><strong>Accounting document</strong> (for valuated stock): debit <strong>inventory</strong>, credit <strong>GR/IR clearing account</strong></li><li><strong>PO history</strong> updated; open quantity reduced</li><li>Info record and supplier evaluation data can be updated</li></ul><h3>Consumable items</h3><p>For a PO item with account assignment K, the GR debits the <strong>consumption account</strong> on the cost centre instead of inventory.</p><h3>Mistakes</h3><ul><li>Wrong quantity posted: <strong>cancel</strong> the material document (movement type 102)</li><li>Goods sent back to supplier: <strong>return delivery</strong> (movement type 122)</li></ul><p class='tip'>The GR/IR account is a temporary 'waiting room' between goods receipt and invoice. Introduce it here; Module 7 goes deeper.</p>",
+      "narration": "When goods arrive, the warehouse posts a goods receipt against the purchase order, using M I G O. You choose the action goods receipt, the reference purchase order, and enter the order number. The system proposes movement type one zero one, goods receipt for a purchase order. You check the quantity, the storage location, and the stock type: unrestricted use, quality inspection, or blocked. Then you tick item OK, check, and post. Several things happen at once. A material document is created. Stock increases in the storage location. For valuated stock, an accounting document posts: a debit to inventory and a credit to the G R I R clearing account. The purchase order history is updated, and the open quantity goes down. For a consumable item, say with account assignment K, the debit goes to a consumption account on the cost centre instead of inventory. And if someone makes a mistake? If the wrong quantity was posted, you cancel the material document, which uses movement type one zero two. If goods are physically sent back to the supplier, you post a return delivery, movement type one two two. Here's a good way to explain the G R I R account: it's a temporary waiting room between the goods receipt and the invoice. We'll go deeper in module seven.",
+      "keyTerms": [
+        ["MIGO", "Goods movement transaction (GR, GI, transfers, cancellations)"],
+        ["Movement type 101", "Goods receipt for purchase order"],
+        ["Movement type 102", "Reversal of 101"],
+        ["Movement type 122", "Return delivery to supplier"],
+        ["GR/IR clearing account", "Temporary account between GR and invoice"]
+      ],
+      "tryIt": [
+        { "task": "Post a GR for your PO in MIGO (movement 101) for a partial quantity." },
+        { "task": "Check stock with MMBE, then display the material document and its accounting document (Doc. info tab → FI documents)." },
+        { "task": "Look at the PO history in ME23N." }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Invoice verification and payment",
+      "minutes": 35,
+      "body": "<p>The supplier's invoice is checked and posted with <code>MIRO</code>; Fiori <em>Create Supplier Invoice – Advanced</em> or <em>Create Supplier Invoice</em>.</p><h3>Three-way match</h3><p>The system compares <strong>PO</strong> (price, terms), <strong>GR</strong> (quantity received) and <strong>invoice</strong> (amount billed). If they agree within tolerances, the invoice posts freely for payment.</p><h3>In MIRO</h3><ol><li>Transaction: Invoice; enter invoice date, reference (supplier's invoice number), amount, tax</li><li>Reference the PO: items are proposed with quantities received</li><li>The <strong>balance</strong> must be zero (traffic light green)</li><li>Post; the system creates an invoice document and an accounting document</li></ol><h3>Accounting entry</h3><p>Debit <strong>GR/IR clearing</strong>, debit input VAT, credit <strong>supplier</strong> (accounts payable via the reconciliation account). The GR/IR account is now cleared.</p><h3>Payment</h3><p>FI runs the <strong>automatic payment program</strong> (<code>F110</code>), which pays open items when due according to the payment terms.</p><h3>Full P2P recap</h3><table><tr><th>Step</th><th>Debit</th><th>Credit</th></tr><tr><td>GR</td><td>Inventory</td><td>GR/IR</td></tr><tr><td>Invoice</td><td>GR/IR + VAT</td><td>Supplier</td></tr><tr><td>Payment</td><td>Supplier</td><td>Bank</td></tr></table><p class='tip'>This three-line table is the single most useful slide for explaining MM–FI integration to non-accountants.</p>",
+      "narration": "The supplier's invoice is checked and posted in M I R O. The system performs a three-way match. It compares the purchase order, for price and terms; the goods receipt, for the quantity received; and the invoice, for the amount billed. If all three agree within tolerances, the invoice is released for payment. In M I R O, you enter the invoice date, the supplier's invoice number as the reference, the amount and the tax. Then you enter the purchase order, and the system proposes the items with the quantities received. The balance must be zero before you can post. When you post, the system creates an invoice document and an accounting document. The entry is a debit to G R I R clearing, a debit to input tax, and a credit to the supplier account. So the G R I R waiting room is now cleared. Payment then happens in finance, where the automatic payment program pays open items when they fall due. Here's the full picture in three lines. At goods receipt: debit inventory, credit G R I R. At invoice: debit G R I R and tax, credit supplier. At payment: debit supplier, credit bank. That little table is the most useful slide you'll have for explaining MM and finance integration to non-accountants.",
+      "keyTerms": [
+        ["MIRO", "Enter supplier invoice (logistics invoice verification)"],
+        ["Three-way match", "PO vs GR vs invoice"],
+        ["Balance", "Must be zero to post an invoice in MIRO"],
+        ["F110", "FI automatic payment program"]
+      ],
+      "tryIt": [
+        { "task": "Post the invoice for your PO in MIRO for the quantity received. Make the balance zero, then post." },
+        { "task": "Display the accounting document and confirm the GR/IR account is debited." },
+        { "task": "Trainer kit: write your P2P demo scenario (supplier, material, quantities, steps) as a one-page script." }
+      ]
+    }
+  ],
+  "flashcards": [
+    ["Seven P2P steps", "Requirement → PR → source → PO → GR → IV → payment"],
+    ["Create PR / PO", "ME51N / ME21N"],
+    ["Goods receipt transaction", "MIGO"],
+    ["Invoice transaction", "MIRO"],
+    ["Standard PO document type", "NB"],
+    ["GR for PO movement type", "101"],
+    ["Cancel a GR", "Movement type 102 (cancel material document)"],
+    ["Return to supplier", "Movement type 122"],
+    ["GR accounting entry", "Dr inventory, Cr GR/IR"],
+    ["Invoice accounting entry", "Dr GR/IR (+ VAT), Cr supplier"],
+    ["Account assignment K", "Cost centre"],
+    ["Three-way match compares", "PO, GR and invoice"],
+    ["Where to see all GRs and invoices for a PO item", "PO history tab"],
+    ["FI payment program", "F110"]
+  ],
+  "quiz": [
+    { "q": "Which document has legal effect with the supplier?", "options": ["Purchase requisition", "Purchase order", "Material document", "Info record"], "answer": 1, "explain": "The PO is the legal order; a PR is internal." },
+    { "q": "What is the accounting entry at goods receipt for a stock material?", "options": ["Dr supplier, Cr bank", "Dr inventory, Cr GR/IR", "Dr GR/IR, Cr supplier", "No entry"], "answer": 1, "explain": "GR for valuated stock debits inventory and credits GR/IR." },
+    { "q": "Which movement type is proposed for a GR against a PO?", "options": ["201", "101", "311", "561"], "answer": 1, "explain": "101 = goods receipt for purchase order." },
+    { "q": "Goods are faulty and physically returned to the supplier. Which movement type?", "options": ["102", "122", "201", "311"], "answer": 1, "explain": "122 is a return delivery; 102 corrects a posting error." },
+    { "q": "A PR item has account assignment K. At GR, the debit goes to…", "options": ["Inventory", "Consumption account on the cost centre", "GR/IR", "Supplier"], "answer": 1, "explain": "Consumable items are expensed to the account assignment object at GR." },
+    { "q": "What does three-way matching compare?", "options": ["PR, PO, GR", "PO, GR, invoice", "Info record, PO, invoice", "PO, invoice, payment"], "answer": 1, "explain": "The invoice is checked against the PO price and the GR quantity." },
+    { "q": "In MIRO, what must be true before posting?", "options": ["The PO must be closed", "The balance must be zero", "A payment block must be set", "The GR must be reversed"], "answer": 1, "explain": "The entered amount must equal the total of the items and tax." },
+    { "q": "Where are PO defaults for currency and payment terms taken from?", "options": ["Material master", "Supplier purchasing data", "Company code", "Requisition"], "answer": 1, "explain": "Supplier purchasing org data provides commercial defaults." },
+    { "q": "Who pays the supplier?", "options": ["MM via MIRO", "FI via the payment run", "The warehouse", "MRP"], "answer": 1, "explain": "MIRO creates the payable; FI pays it with F110." }
+  ],
+  "trainerNotes": {
+    "howToTeach": [
+      "Run the whole cycle once fast, then once slowly, step by step",
+      "Have each learner run their own P2P with their own supplier and material",
+      "After each step, open the accounting document so the FI link stays visible"
+    ],
+    "commonMistakes": [
+      "Posting GR with the wrong storage location",
+      "Using 102 instead of 122 for real returns (or the reverse)",
+      "Entering the gross amount without tax in MIRO and getting a non-zero balance",
+      "Creating a PO without referencing the PR, leaving the PR open"
+    ],
+    "demoScript": [
+      "ME51N: PR for 10 units",
+      "ME21N: adopt the PR, show price from info record",
+      "MIGO: GR 101 for 6 units, show stock and FI document",
+      "MIRO: invoice for 6 units, show GR/IR cleared",
+      "ME23N: show PO history and remaining open quantity"
+    ]
+  }
+}
