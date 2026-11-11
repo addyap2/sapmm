@@ -1,0 +1,17 @@
+{
+  "title": "SAP MM — Trainer Track",
+  "subtitle": "S/4HANA Sourcing & Procurement",
+  "author": "Antony Addy",
+  "modules": [
+    { "id": 1, "title": "Foundations & Organisational Structure", "week": "Week 1", "file": "module-01.json" },
+    { "id": 2, "title": "Master Data I — Business Partner (Supplier)", "week": "Week 1–2", "file": null },
+    { "id": 3, "title": "Master Data II — Product, Info Records, Source Lists", "week": "Week 2", "file": null },
+    { "id": 4, "title": "The Procure-to-Pay Cycle", "week": "Week 3", "file": null },
+    { "id": 5, "title": "Purchasing in Depth", "week": "Week 3–4", "file": null },
+    { "id": 6, "title": "Inventory Management", "week": "Week 4–5", "file": null },
+    { "id": 7, "title": "Invoice Verification & FI Integration", "week": "Week 5", "file": null },
+    { "id": 8, "title": "Pricing, Release Strategies & Output", "week": "Week 6", "file": null },
+    { "id": 9, "title": "MRP Basics, Special Procurement & Valuation", "week": "Week 6–7", "file": null },
+    { "id": 10, "title": "Reporting, Fiori Analytics & Exam Revision", "week": "Week 7–8", "file": null }
+  ]
+}

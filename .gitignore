@@ -1,0 +1,4 @@
+.DS_Store
+*.wav
+__pycache__/
+.vercel

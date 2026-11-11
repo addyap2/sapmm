@@ -1,0 +1,151 @@
+{
+  "id": 1,
+  "title": "Foundations & Organisational Structure",
+  "intro": "Where MM sits in SAP S/4HANA, how to find your way around the system, and the organisational units every purchasing and inventory process is built on.",
+  "objectives": [
+    "Explain what SAP S/4HANA is and where MM fits",
+    "Navigate the Fiori launchpad and SAP GUI",
+    "Define client, company code, plant, storage location, purchasing organisation and purchasing group",
+    "Describe how these units are assigned to each other"
+  ],
+  "lessons": [
+    {
+      "id": 1,
+      "title": "SAP S/4HANA and where MM fits",
+      "minutes": 25,
+      "body": "<p><strong>SAP S/4HANA</strong> is SAP's current ERP suite. It runs only on SAP's in-memory database, <strong>SAP HANA</strong>, and replaces the older <strong>SAP ECC</strong>. ECC mainstream maintenance ends in 2027, which is why so many companies are migrating now. Every migration needs end-user training.</p><h3>Three ways to run it</h3><ul><li><strong>On-premise</strong>: installed on the company's own servers</li><li><strong>Cloud Private Edition</strong>: hosted by SAP, but customisable like on-premise (the C_TS452 exam covers this)</li><li><strong>Cloud Public Edition</strong>: standardised SaaS with less customisation</li></ul><h3>What MM covers</h3><p><strong>MM (Materials Management)</strong> handles everything about buying and holding goods. In S/4HANA marketing it appears as <em>Sourcing and Procurement</em> plus <em>Inventory Management</em>.</p><ul><li>Purchasing: requisitions, quotations, purchase orders, contracts</li><li>Inventory management: goods receipts, issues, transfers, stock</li><li>Invoice verification: checking supplier invoices against POs and receipts</li><li>Master data: suppliers, materials, purchasing info records</li></ul><h3>Integration: MM never works alone</h3><ul><li><strong>FI</strong> (Financial Accounting): every goods receipt and invoice creates accounting entries</li><li><strong>CO</strong> (Controlling): purchases charged to cost centres</li><li><strong>SD</strong> (Sales): stock availability for customer orders</li><li><strong>PP</strong> (Production Planning): MRP creates purchase requisitions</li><li><strong>EWM / QM</strong>: warehouse and quality management</li></ul><p class='tip'>Trainer angle: learners always ask “what happens in accounting when I do this?” Knowing the FI link makes you credible.</p>",
+      "narration": "Let's start with the big picture. SAP S/4HANA is SAP's current enterprise resource planning suite. It runs on SAP's own in-memory database, called HANA, and it replaces the older system, SAP ECC. Mainstream maintenance for ECC ends in 2027, and that's why so many companies are migrating right now. For you as a trainer, that's good news, because every migration means staff who need training. S/4HANA can run in three ways: on-premise, on the company's own servers; Cloud Private Edition, hosted by SAP but still customisable; and Cloud Public Edition, a standardised software-as-a-service version. The certification you're aiming for covers Private Edition. Now, MM stands for Materials Management. It covers everything to do with buying goods and holding them in stock: purchasing, inventory management, invoice verification, and the master data behind all of it, such as suppliers and materials. The key idea to remember is that MM never works alone. Every goods receipt and every supplier invoice creates entries in Financial Accounting. Purchases can be charged to cost centres in Controlling. Sales checks stock that MM manages. And production planning creates the purchase requisitions that MM turns into orders. When your learners ask what happens in accounting when they post something, you'll have the answer.",
+      "keyTerms": [
+        ["ERP", "Enterprise Resource Planning: one integrated system for the whole business"],
+        ["SAP HANA", "SAP's in-memory database that S/4HANA runs on"],
+        ["SAP ECC", "The predecessor ERP system, being replaced by S/4HANA"],
+        ["MM", "Materials Management: purchasing, inventory, invoice verification"]
+      ],
+      "tryIt": [
+        { "task": "Log in to your practice system and note which edition and release it is (look under your user menu → About, or System → Status in SAP GUI)." }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Finding your way: Fiori launchpad and SAP GUI",
+      "minutes": 30,
+      "body": "<p>S/4HANA has two user interfaces. Your learners will use one or both, so you need to be fluent in each.</p><h3>SAP Fiori launchpad</h3><ul><li>Browser-based, works on tablets and phones</li><li>Apps appear as <strong>tiles</strong>, organised into <strong>spaces and pages</strong></li><li><strong>Role-based</strong>: a purchaser sees purchasing apps, a warehouse clerk sees inventory apps (e.g. business role <em>SAP_BR_PURCHASER</em>)</li><li>App types: <strong>transactional</strong> (do something), <strong>analytical</strong> (KPIs, reports), <strong>fact sheets</strong> (look something up)</li><li>Many classic transactions are available as Fiori tiles, often labelled <em>“– Advanced”</em></li></ul><h3>SAP GUI</h3><ul><li>The classic desktop client, still widely used</li><li>Navigation by <strong>transaction codes</strong> typed in the command field</li><li><code>/n</code> + code = open in the same window (e.g. <code>/nME21N</code>); <code>/o</code> + code = open in a new window</li><li>Configuration lives in the <strong>IMG</strong> (Implementation Guide), transaction <code>SPRO</code></li></ul><h3>Core MM transactions and their Fiori equivalents</h3><table><tr><th>Process</th><th>SAP GUI</th><th>Fiori app</th></tr><tr><td>Create purchase requisition</td><td>ME51N</td><td>Manage Purchase Requisitions</td></tr><tr><td>Create purchase order</td><td>ME21N</td><td>Create Purchase Order – Advanced / Manage Purchase Orders</td></tr><tr><td>Goods receipt / movement</td><td>MIGO</td><td>Post Goods Movement</td></tr><tr><td>Supplier invoice</td><td>MIRO</td><td>Create Supplier Invoice – Advanced</td></tr><tr><td>Supplier master</td><td>BP</td><td>Manage Business Partner Master Data</td></tr><tr><td>Material master</td><td>MM01 / MM02 / MM03</td><td>Manage Product Master Data</td></tr></table><p class='tip'>Fiori app names change between releases. Always check the <strong>SAP Fiori apps reference library</strong> for the release your client uses.</p>",
+      "narration": "S/4HANA gives users two ways in. The first is the SAP Fiori launchpad. It runs in a web browser, so it also works on tablets and phones. Applications appear as tiles, grouped into spaces and pages, and what each user sees depends on their business role. A purchaser sees purchasing apps; a warehouse clerk sees inventory apps. Fiori apps come in three flavours: transactional apps, where you actually do something like create an order; analytical apps, which show figures and reports; and fact sheets, which let you look something up quickly. The second interface is the classic SAP GUI. Here you navigate with transaction codes. Type slash N followed by a code to open it in the same window, for example slash N, M E, 2 1, N, to create a purchase order. Type slash O instead to open it in a new window. The configuration of the whole system lives in the Implementation Guide, which you reach with the transaction S P R O. Learn these core codes now, because you'll use them all through the course: M E 5 1 N for purchase requisitions, M E 2 1 N for purchase orders, M I G O for goods movements, M I R O for supplier invoices, B P for business partners, and M M 0 1, 0 2 and 0 3 to create, change and display materials. One last trainer tip: Fiori app names change between releases, so always check the Fiori apps reference library for the release your client is on.",
+      "keyTerms": [
+        ["Fiori launchpad", "Browser-based, role-based entry point with app tiles"],
+        ["Transaction code", "Short code to open a function in SAP GUI, e.g. ME21N"],
+        ["/n and /o", "/n opens a transaction in the same window, /o in a new one"],
+        ["SPRO / IMG", "Implementation Guide: where the system is configured"]
+      ],
+      "tryIt": [
+        { "task": "Open the Fiori launchpad and find the apps for purchase requisitions, purchase orders and goods movements. Note their exact names in your system." },
+        { "task": "In SAP GUI, open ME23N (display purchase order) with /nME23N, then open MIGO in a new window with /oMIGO." },
+        { "task": "Run SPRO, click 'SAP Reference IMG' and expand Materials Management. Just look — don't change anything." }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Enterprise structure: client, company code, plant, storage location",
+      "minutes": 40,
+      "body": "<p>Every transaction in MM happens <em>somewhere</em> in the organisation. These units are set up once in configuration and almost never change.</p><h3>Client</h3><ul><li>The highest level: a self-contained system with its own master data and settings</li><li>3-digit number (e.g. 100). You choose it when you log on</li><li>Companies often have separate clients for development, testing, training and production</li></ul><h3>Company code</h3><ul><li>The smallest unit for which a <strong>complete set of accounts</strong> (balance sheet, P&amp;L) is produced: in practice, a legal entity</li><li>4 characters (e.g. 1010)</li><li>Defined in FI, but MM depends on it because purchases and stock have a financial value</li></ul><h3>Plant</h3><ul><li>A <strong>logistics</strong> location: factory, warehouse, branch, distribution centre</li><li>4 characters. Each plant belongs to <strong>exactly one</strong> company code</li><li>Stock is usually <strong>valued at plant level</strong> (the valuation area is normally the plant)</li><li>Material master data has plant-specific views (e.g. MRP settings per plant)</li></ul><h3>Storage location</h3><ul><li>A place <strong>within a plant</strong> where stock is physically kept: raw materials store, finished goods store, spare parts cage</li><li>4 characters. Belongs to one plant</li><li>Stock <strong>quantities</strong> are managed at storage location level (values at plant level)</li></ul><h3>The hierarchy</h3><p><code>Client → Company code → Plant → Storage location</code></p><p class='tip'>Common learner confusion: a storage location is not a warehouse bin. Bins belong to warehouse management (EWM), which is a separate, more detailed layer.</p>",
+      "narration": "Every MM transaction happens somewhere in the organisation, and SAP models that with organisational units. They're set up once in configuration and rarely change. At the top is the client. A client is a self-contained system with its own data and settings, identified by a three-digit number that you choose when you log on. Companies usually have separate clients for development, testing, training and real production work. Below the client is the company code. This is the smallest unit for which a complete set of accounts can be produced, a balance sheet and a profit and loss statement. In practice, think of it as a legal entity. It's defined by the finance team, but MM depends on it, because everything you buy and store has a financial value. Next comes the plant. A plant is a logistics location, such as a factory, a warehouse or a branch. Each plant belongs to exactly one company code, and stock is normally valued at plant level. Finally, inside each plant you have storage locations. These are the physical places where stock is kept, like a raw materials store or a finished goods store. Stock quantities are tracked by storage location, while stock values are tracked by plant. So the hierarchy is: client, company code, plant, storage location. One classic learner mistake: a storage location is not a warehouse bin. Bins belong to warehouse management, which is a separate and more detailed layer.",
+      "keyTerms": [
+        ["Client", "Highest org level; self-contained data and settings; 3 digits"],
+        ["Company code", "Legal entity with its own complete set of accounts; 4 characters"],
+        ["Plant", "Logistics location; belongs to one company code; usual valuation level"],
+        ["Storage location", "Place within a plant where stock is kept; quantity level"],
+        ["Valuation area", "Level at which stock is valued, normally the plant"]
+      ],
+      "tryIt": [
+        { "task": "Find which client you log on to and write it down." },
+        { "task": "In SPRO → Enterprise Structure → Definition, display (don't change) the company codes, plants and storage locations in your system. Many SAP Best Practices systems use company code 1010 and plant 1010, but check yours." },
+        { "task": "Display any material with MM03 and look at the Plant Data / Storage views to see where it is stocked." }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Purchasing organisation and purchasing group",
+      "minutes": 35,
+      "body": "<h3>Purchasing organisation</h3><ul><li>The unit that <strong>negotiates conditions</strong> (prices, terms) with suppliers and is legally responsible for purchasing</li><li>4 characters</li><li>Every purchase order is created for one purchasing organisation</li><li>Supplier purchasing data (currency, payment terms, incoterms) is maintained per purchasing organisation</li></ul><h3>Three ways to organise purchasing</h3><ul><li><strong>Centralised (cross-company)</strong>: one purchasing org buys for plants in several company codes. It is <em>not</em> assigned to a company code</li><li><strong>Company-specific</strong>: one purchasing org per company code, buying for all its plants</li><li><strong>Plant-specific</strong>: one purchasing org per plant</li></ul><p>A purchasing org is assigned to the <strong>plants</strong> it buys for. One plant can be served by several purchasing orgs.</p><p>A <strong>reference purchasing organisation</strong> lets other purchasing orgs use its negotiated contracts and conditions.</p><h3>Purchasing group</h3><ul><li>A <strong>buyer or team of buyers</strong> responsible for certain materials or activities</li><li>3 characters (e.g. 001)</li><li><strong>Not assigned</strong> to any other organisational unit: it is defined independently</li><li>Used for responsibility, reporting and as the internal contact on purchase documents</li></ul><p class='tip'>Easy way to remember it: the purchasing organisation is <strong>the legal buyer</strong>; the purchasing group is <strong>the person at the desk</strong>.</p>",
+      "narration": "Now the two purchasing units. The purchasing organisation is the unit that negotiates prices and terms with suppliers, and it carries the legal responsibility for purchasing. It has a four-character key, and every purchase order belongs to exactly one purchasing organisation. Supplier data such as order currency and payment terms is also stored per purchasing organisation. Companies can organise purchasing in three ways. Centralised, or cross-company: one purchasing organisation buys for plants in several company codes, and in that case it is not assigned to any company code. Company-specific: one purchasing organisation per company code. Or plant-specific: one purchasing organisation per plant. Whatever the model, purchasing organisations are assigned to the plants they buy for, and one plant can be served by several of them. There's also the reference purchasing organisation, which lets other purchasing organisations use its contracts and conditions. Then there's the purchasing group. This is a buyer, or a team of buyers. It has a three-character key, and here's the important point: it isn't assigned to any other organisational unit. It's used to show who is responsible and for reporting. An easy way to remember the difference: the purchasing organisation is the legal buyer, and the purchasing group is the person at the desk.",
+      "keyTerms": [
+        ["Purchasing organisation", "Negotiates conditions with suppliers; legally responsible; 4 characters"],
+        ["Purchasing group", "Buyer or team of buyers; not assigned to org units; 3 characters"],
+        ["Centralised purchasing", "Purchasing org not assigned to a company code; buys across companies"],
+        ["Reference purchasing org", "Its contracts and conditions can be used by other purchasing orgs"]
+      ],
+      "tryIt": [
+        { "task": "Display the purchasing organisations in your system (SPRO → Enterprise Structure → Definition → Materials Management → Maintain Purchasing Organization, or transaction OX08)." },
+        { "task": "Display the purchasing groups (SPRO → Materials Management → Purchasing → Create Purchasing Groups, or OME4)." },
+        { "task": "Open any purchase order with ME23N and find its purchasing organisation and purchasing group on the Org. Data tab of the header." }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Putting it together: assignments",
+      "minutes": 30,
+      "body": "<p>Organisational units only work once they're <strong>assigned</strong> to each other. These assignments decide which plants a purchasing org can buy for and which company code pays.</p><h3>The key assignments</h3><table><tr><th>Assignment</th><th>Rule</th><th>Transaction</th></tr><tr><td>Plant → company code</td><td>Each plant belongs to exactly one company code</td><td>OX18</td></tr><tr><td>Storage location → plant</td><td>Defined inside the plant</td><td>OX09</td></tr><tr><td>Purchasing org → company code</td><td>Optional (omit for cross-company purchasing)</td><td>OX01</td></tr><tr><td>Purchasing org → plant</td><td>Many-to-many</td><td>OX17</td></tr><tr><td>Purchasing group</td><td>No assignment</td><td>OME4</td></tr></table><h3>Worked example: Azur Industries (fictional)</h3><ul><li>Company code <strong>FR01</strong> Azur Industries SAS (France)</li><li>Plant <strong>FR10</strong> Fréjus factory with storage locations <strong>RM01</strong> (raw materials) and <strong>FG01</strong> (finished goods)</li><li>Plant <strong>FR20</strong> Nice warehouse with storage location <strong>WH01</strong></li><li>Purchasing org <strong>FR00</strong> assigned to company code FR01 and to both plants</li><li>Purchasing groups <strong>001</strong> (raw materials buyer) and <strong>002</strong> (indirect purchases)</li></ul><p>A buyer in group 001 creates a PO in purchasing org FR00 for plant FR10, storage location RM01. On goods receipt, stock increases in RM01 (quantity) and in FR10 (value), and the accounting entry posts in company code FR01.</p><p class='tip'>In class, draw this structure on the board before any transaction. Learners make far fewer org-data errors on POs once they've seen the picture.</p>",
+      "narration": "Organisational units only work once they're assigned to each other. These assignments decide which plants a purchasing organisation can buy for, and which company code ends up paying. Here are the rules. Each plant is assigned to exactly one company code. Storage locations are defined inside their plant. A purchasing organisation can be assigned to a company code, but that's optional: leave it unassigned and it can buy across companies. Purchasing organisations are assigned to plants, and that relationship is many-to-many. And purchasing groups aren't assigned to anything. Let's make it concrete with a fictional company, Azur Industries. It has one company code, F R 0 1, in France. It has two plants: F R 1 0, a factory in Fréjus, with a raw materials store and a finished goods store, and F R 2 0, a warehouse in Nice. One purchasing organisation, F R 0 0, is assigned to the company code and to both plants. And there are two purchasing groups: 0 0 1 for raw materials and 0 0 2 for indirect purchases. So when a buyer in group 0 0 1 creates a purchase order in purchasing organisation F R 0 0 for the Fréjus plant and the raw materials store, here's what happens at goods receipt: the quantity goes up in the storage location, the value goes up in the plant, and the accounting entry posts in company code F R 0 1. A tip for class: draw this structure on the board before you show a single transaction. Learners make far fewer mistakes with organisational data once they've seen the picture.",
+      "keyTerms": [
+        ["OX18", "Assign plant to company code"],
+        ["OX01", "Assign purchasing organisation to company code"],
+        ["OX17", "Assign purchasing organisation to plant"],
+        ["Many-to-many", "One purchasing org serves several plants; one plant can have several purchasing orgs"]
+      ],
+      "tryIt": [
+        { "task": "Display (don't change) OX18, OX01 and OX17 in your system and draw your system's org structure on paper, like the Azur example." },
+        { "task": "Trainer kit: turn your drawing into a clean one-page diagram. It becomes slide 1 of your sellable module." }
+      ]
+    }
+  ],
+  "flashcards": [
+    ["What does MM stand for?", "Materials Management"],
+    ["What database does S/4HANA run on?", "SAP HANA (in-memory)"],
+    ["What is the highest organisational level?", "The client"],
+    ["Smallest unit with a complete set of accounts?", "Company code"],
+    ["How many company codes can a plant belong to?", "Exactly one"],
+    ["At which level are stock quantities managed?", "Storage location"],
+    ["At which level is stock normally valued?", "Plant (valuation area = plant)"],
+    ["Who negotiates conditions with suppliers?", "The purchasing organisation"],
+    ["Is a purchasing group assigned to a plant?", "No: it isn't assigned to any org unit"],
+    ["Key length of a purchasing group?", "3 characters"],
+    ["Purchasing org not assigned to a company code means…", "Centralised (cross-company) purchasing"],
+    ["Transaction: create purchase order", "ME21N"],
+    ["Transaction: goods movement", "MIGO"],
+    ["Transaction: supplier invoice", "MIRO"],
+    ["Transaction: business partner (supplier)", "BP"],
+    ["Transaction to reach the IMG", "SPRO"],
+    ["Assign purchasing org to plant", "OX17"],
+    ["Assign plant to company code", "OX18"]
+  ],
+  "quiz": [
+    { "q": "Which unit is the smallest for which a complete set of accounts can be drawn up?", "options": ["Client", "Company code", "Plant", "Purchasing organisation"], "answer": 1, "explain": "The company code is the legal entity level with its own balance sheet and P&L." },
+    { "q": "A plant can be assigned to…", "options": ["Several company codes", "Exactly one company code", "No company code", "One client only, with no company code"], "answer": 1, "explain": "Each plant belongs to exactly one company code." },
+    { "q": "Where are stock quantities managed?", "options": ["Client", "Company code", "Plant", "Storage location"], "answer": 3, "explain": "Quantities are held per storage location; values are normally held per plant." },
+    { "q": "Which statement about purchasing groups is correct?", "options": ["They are assigned to a purchasing organisation", "They are assigned to a plant", "They are not assigned to other organisational units", "They are assigned to a company code"], "answer": 2, "explain": "Purchasing groups (buyers) are defined independently of the other org units." },
+    { "q": "A purchasing organisation that buys for plants in several company codes is…", "options": ["Assigned to all those company codes", "Not assigned to any company code", "Assigned to the client", "A purchasing group"], "answer": 1, "explain": "Cross-company (centralised) purchasing orgs are not assigned to a company code; they are assigned to the plants." },
+    { "q": "What is the relationship between purchasing organisations and plants?", "options": ["One-to-one", "One-to-many only", "Many-to-many", "No relationship"], "answer": 2, "explain": "One purchasing org can serve several plants, and one plant can be served by several purchasing orgs." },
+    { "q": "Which transaction creates a purchase order in SAP GUI?", "options": ["ME51N", "ME21N", "MIGO", "MIRO"], "answer": 1, "explain": "ME21N creates POs. ME51N creates purchase requisitions." },
+    { "q": "In S/4HANA, suppliers are maintained with…", "options": ["XK01 only", "Business Partner (BP)", "MM01", "SPRO"], "answer": 1, "explain": "S/4HANA uses the Business Partner for suppliers; old vendor transactions redirect to BP." },
+    { "q": "Which edition does the C_TS452 certification cover?", "options": ["Cloud Public Edition", "Cloud Private Edition", "SAP ECC", "SAP Business One"], "answer": 1, "explain": "C_TS452 covers S/4HANA Cloud Private Edition (also relevant for on-premise)." },
+    { "q": "Typing /oMIGO in the command field…", "options": ["Opens MIGO in the same window", "Opens MIGO in a new window", "Closes MIGO", "Opens MIGO in Fiori"], "answer": 1, "explain": "/o opens a new session; /n replaces the current one." }
+  ],
+  "trainerNotes": {
+    "howToTeach": [
+      "Open with the 'why': ECC end of maintenance and migrations, so learners see the stakes",
+      "Draw the org structure before showing any screen",
+      "Show the same process in Fiori and SAP GUI side by side"
+    ],
+    "commonMistakes": [
+      "Confusing purchasing organisation with purchasing group",
+      "Thinking a storage location is a warehouse bin",
+      "Entering the wrong plant on a PO, which posts stock and value in the wrong place"
+    ],
+    "demoScript": [
+      "Log on and show the client number",
+      "Display the org structure in SPRO (read-only)",
+      "Open an existing PO in ME23N and point out each org unit on screen",
+      "Show the same PO in the Fiori app Manage Purchase Orders"
+    ]
+  }
+}
