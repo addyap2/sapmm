@@ -13,7 +13,7 @@ function setStrategy(D, kind, value) {
   const codes = levels(kind, value);
   D.relCodes = codes; D.relDone = []; D.relReq = codes.length > 0; D.released = !D.relReq; D.relStrat = codes.length ? `S${codes.length}` : '';
 }
-HOOKS.poCreate.push(P => { if (P.type === 'LP') { P.relReq = false; P.released = true; return; } setStrategy(P, 'po', poValue(P)); });
+HOOKS.poCreate.push(P => { if (P.type === 'LP' || P.type === 'UB') { P.relReq = false; P.released = true; return; } setStrategy(P, 'po', poValue(P)); });
 HOOKS.prCreate.push(P => setStrategy(P, 'pr', prValue(P)));
 (HOOKS.poChange ??= []).push((P, oldV, newV) => { const codes = levels('po', newV); if (newV > oldV + 0.004 || codes.join() !== (P.relCodes || []).join()) { const was = P.released && P.relReq; setStrategy(P, 'po', newV); if (was && P.relReq) P.output = null; } });
 (HOOKS.prChange ??= []).push(P => setStrategy(P, 'pr', prValue(P)));

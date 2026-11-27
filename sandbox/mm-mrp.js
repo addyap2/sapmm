@@ -16,7 +16,7 @@ function elements(m) {
   for (const R of Object.values(S.reservations)) for (const i of R.items) if (i.matnr === m && !i.final && i.qty - i.wd > 0) ev.push({ date: i.reqDate, el: 'Reserv', data: `${R.num}/${i.item} cc ${R.cc}`, qty: -r3(i.qty - i.wd), link: ['MB23', { res: R.num }] });
   for (const P of Object.values(S.pos)) for (const it of P.items) {
     if (it.del) continue;
-    if (it.matnr === m && it.cat !== 'K' && it.acct !== 'K') { const t = poTotals(P, it); if (t.toDeliver > 0) ev.push({ date: it.date, el: P.type === 'LP' ? 'SchLne' : 'POitem', data: `${P.num}/${it.item} ${P.vendor}`, qty: t.toDeliver, link: ['ME23N', { po: P.num }] }); }
+    if (it.matnr === m && it.plant === '1010' && it.cat !== 'K' && it.acct !== 'K') { const t = poTotals(P, it); if (t.toDeliver > 0) ev.push({ date: it.date, el: P.type === 'LP' ? 'SchLne' : 'POitem', data: `${P.num}/${it.item} ${P.vendor}`, qty: t.toDeliver, link: ['ME23N', { po: P.num }] }); }
     if (it.cat === 'L' && it.comps) for (const cp of it.comps) if (cp.matnr === m) { const t = poTotals(P, it); const need = r3(cp.qty * Math.max(0, t.toDeliver) / it.qty); const atV = special(`O|${m}|1010|${P.vendor}`); const net = r3(need - atV); if (net > 0) ev.push({ date: it.date, el: 'SubReq', data: `${P.num}/${it.item} (subcontracting ${it.matnr})`, qty: -net, link: ['ME23N', { po: P.num }] }); }
   }
   for (const PR of Object.values(S.prs)) for (const it of PR.items) {

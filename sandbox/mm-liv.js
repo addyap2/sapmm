@@ -47,7 +47,7 @@ TX.MR8M = {
     if (D.status === 'reversed') err(`Document ${num} has already been reversed (by ${D.revBy})`, null, 'inv');
     if (D.status === 'reversal') err(`Document ${num} is itself a reversal document`, null, 'inv');
     if (D.paid) err(`Document ${num} is already paid (cleared on ${fmtD(D.paid)}): reverse the payment first`, 'INV_PAID', 'inv');
-    if (D.kind === 'KN') err('Consignment settlements cannot be cancelled in this sandbox', null, 'inv');
+    if (D.kind === 'KN' || D.kind === 'MR11') err('Consignment settlements and account maintenance documents cannot be cancelled in this sandbox', null, 'inv');
     const date = needDate(c, 'date'); const P = S.pos[D.po]; const s = D.cm ? 1 : -1;
     for (const x of D.items) { const it = P.items.find(i => i.item === x.item); const t = poTotals(P, it); if (D.cm && t.ir + x.qty > t.gr + 1e-9 && false) err(''); }
     const rnum = nextNo('inv');
@@ -118,7 +118,7 @@ TX.MRKO = {
 };
 
 // ---------- F110 ----------
-const openItems = v => Object.values(S.invoices).filter(D => D.status === 'posted' && !D.paid && (!v || D.vendor === v));
+const openItems = v => Object.values(S.invoices).filter(D => D.status === 'posted' && D.kind !== 'MR11' && !D.paid && (!v || D.vendor === v));
 TX.F110 = {
   title: c => c.m.prop ? `Automatic Payment Transactions: Proposal · run ${fmtD(today())} / ${c.m.id}` : 'Automatic Payment Transactions: Parameters',
   init: () => ({ id: 'RIV01', next: fmtD(dPlus(31)), vendor: '', prop: false }),
@@ -163,7 +163,7 @@ TX.FBL1N = {
   render: c => {
     if (!c.m.list) return box('Selection', F('Supplier', 'vendor', { f4: 'vendor', w: 10, desc: 'empty = all' }) + F('Company code', '_cc', { ro: 1, w: 6, desc: '1010' }) + F('Line item selection', 'status', { type: 'select', opts: { open: 'Open items', cleared: 'Cleared items', all: 'All items' } }));
     const v = c.m.vendor.trim();
-    const inv = Object.values(S.invoices).filter(D => D.status !== 'parked' && (!v || D.vendor === v)).map(D => ({ open: D.status === 'posted' && !D.paid, type: D.kind === 'KN' ? 'KN' : D.cm ? 'KG' : 'RE', doc: D.num, acc: D.acc, date: D.date, due: dueDate(D), amt: D.cm ? D.gross : -D.gross, vendor: D.vendor, block: D.blocked && D.status === 'posted', ref: D.ref, clr: D.paid ? D.payDoc : D.status !== 'posted' ? (D.revBy || D.of) : '' }));
+    const inv = Object.values(S.invoices).filter(D => D.status !== 'parked' && D.kind !== 'MR11' && (!v || D.vendor === v)).map(D => ({ open: D.status === 'posted' && !D.paid, type: D.kind === 'KN' ? 'KN' : D.cm ? 'KG' : 'RE', doc: D.num, acc: D.acc, date: D.date, due: dueDate(D), amt: D.cm ? D.gross : -D.gross, vendor: D.vendor, block: D.blocked && D.status === 'posted', ref: D.ref, clr: D.paid ? D.payDoc : D.status !== 'posted' ? (D.revBy || D.of) : '' }));
     const pay = Object.values(S.payments).filter(p => !v || p.vendor === v).map(p => ({ open: false, type: 'ZP', doc: p.num, acc: p.num, date: p.date, due: p.date, amt: p.amount, vendor: p.vendor, ref: `Payment run ${p.run}`, clr: p.num }));
     const rows = [...inv, ...pay].filter(r => c.m.status === 'all' || (c.m.status === 'open') === r.open).sort((a, b) => a.date < b.date ? -1 : 1);
     return box(`Line items (${rows.length})`, grid([{ h: 'St', f: r => `<span class="light ${r.open ? 'r' : 'g'}" title="${r.open ? 'Open' : 'Cleared'}"></span>` }, { h: 'Supplier', f: r => `${r.vendor} ${esc(vname(r.vendor))}` }, { h: 'Type', k: 'type' }, { h: 'Document', f: r => r.type === 'ZP' ? lnk('FB03', { doc: r.acc }, r.doc) : lnk('MIR4', { inv: r.doc }, r.doc) }, { h: 'Doc. date', f: r => fmtD(r.date) }, { h: 'Net due date', f: r => fmtD(r.due) }, { h: 'Amount EUR', r: 1, f: r => money(r.amt) }, { h: 'Block', f: r => r.block ? '<span class="badge err">R</span>' : '' }, { h: 'Reference', f: r => esc(r.ref || '') }, { h: 'Clearing doc.', f: r => esc(r.clr || '') }], rows, { foot: rows.length ? `<tr class="tot"><td colspan="6">Balance</td><td class="r">${money(sum(rows, r => r.amt))}</td><td colspan="3">EUR (negative = we owe)</td></tr>` : '' }));
@@ -179,7 +179,7 @@ TX.MIR6 = {
     if (!c.m.list) return box('Selection', F('Supplier', 'vendor', { f4: 'vendor', w: 10 }) + F('Status', 'st', { type: 'select', opts: { all: 'All', parked: 'Parked', blocked: 'Blocked for payment', posted: 'Posted', reversed: 'Reversed' } }));
     const v = c.m.vendor.trim(), st = c.m.st;
     const rows = Object.values(S.invoices).reverse().filter(D => (!v || D.vendor === v) && (st === 'all' || (st === 'blocked' ? D.blocked && D.status === 'posted' : st === 'reversed' ? ['reversed', 'reversal'].includes(D.status) : D.status === st)));
-    return box(`Invoices (${rows.length})`, grid([{ h: 'Document', f: D => lnk('MIR4', { inv: D.num }, D.num) }, { h: 'Type', f: D => D.kind === 'KN' ? 'Consignment' : D.cm ? 'Credit memo' : 'Invoice' }, { h: 'Supplier', f: D => `${D.vendor} ${esc(vname(D.vendor))}` }, { h: 'Reference', f: D => esc(D.ref) }, { h: 'Date', f: D => fmtD(D.date) }, { h: 'PO', f: D => D.po || '' }, { h: 'Gross EUR', r: 1, f: D => money(D.gross) }, { h: 'Status', f: D => invStatus(D) }], rows));
+    return box(`Invoices (${rows.length})`, grid([{ h: 'Document', f: D => lnk('MIR4', { inv: D.num }, D.num) }, { h: 'Type', f: D => D.kind === 'KN' ? 'Consignment' : D.kind === 'MR11' ? 'Account maintenance' : D.sub ? (D.sub === 'D' ? 'Subsequent debit' : 'Subsequent credit') : D.cm ? 'Credit memo' : 'Invoice' }, { h: 'Supplier', f: D => `${D.vendor} ${esc(vname(D.vendor))}` }, { h: 'Reference', f: D => esc(D.ref) }, { h: 'Date', f: D => fmtD(D.date) }, { h: 'PO', f: D => D.po || '' }, { h: 'Gross EUR', r: 1, f: D => money(D.gross) }, { h: 'Status', f: D => invStatus(D) }], rows));
   },
   enter: c => TX.MIR6.exec(c), exec: c => { if (c.m.list) return; c.m.list = true; emit('REPORT', { tcode: 'MIR6' }); },
   back: c => { if (c.m.list) { c.m.list = false; return true; } }

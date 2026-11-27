@@ -41,8 +41,9 @@ const err = (m, code, field) => { throw new SapErr(m, code, field); };
 // ======================================================================
 const ORG = {
   cc: { '1010': 'Riviera Trading SAS (Fréjus)' },
-  plants: { '1010': 'Plant Fréjus' },
-  slocs: { '101A': 'Main warehouse', '101B': 'Returns store' },
+  plants: { '1010': 'Plant Fréjus', '1020': 'Plant Cannes' },
+  slocs: { '101A': 'Main warehouse', '101B': 'Returns store', '102A': 'Cannes shop store' },
+  plantSlocs: { '1010': ['101A', '101B'], '1020': ['102A'] },
   porgs: { '1010': 'Purch. Org. Riviera' },
   pgrps: { '001': 'IT & office', '002': 'Packaging' },
   mtypes: { HAWA: 'Trading goods', ROH: 'Raw materials', FERT: 'Finished product' },
@@ -63,7 +64,7 @@ const ORG = {
   mrpTypes: { ND: 'ND – No planning', VB: 'VB – Manual reorder point', PD: 'PD – MRP' },
   lots: { EX: 'EX – Lot-for-lot', FX: 'FX – Fixed lot size', HB: 'HB – Replenish to maximum' }
 };
-const ORG0 = JSON.parse(JSON.stringify({ slocs: ORG.slocs, pgrps: ORG.pgrps, mtypeDef: ORG.mtypeDef }));
+const ORG0 = JSON.parse(JSON.stringify({ slocs: ORG.slocs, pgrps: ORG.pgrps, mtypeDef: ORG.mtypeDef, plantSlocs: ORG.plantSlocs }));
 const GL_DEF = {
   '3100': ['13100000', 'Inventory – trading goods'],
   '3000': ['13000000', 'Inventory – raw materials'],
@@ -81,8 +82,10 @@ const GL_DEF = {
   UMB: ['52100000', 'Revaluation gains/losses'],
   KON: ['21950000', 'Consignment liabilities'],
   BANK: ['11000000', 'Bank – outgoing payments'],
-  SRV: ['62500000', 'External services']
+  SRV: ['62500000', 'External services'],
+  DIF: ['52300000', 'GR/IR clearing differences']
 };
+const slocOk = (p, s) => (ORG.plantSlocs[p] || []).includes(s);
 const glkFor = grp => String(grp || '').startsWith('S') ? 'SRV' : 'GBB_VBR';
 const GL = {};
 
@@ -91,6 +94,7 @@ const MVT = {
   '201': { t: 'GI for cost center', from: 'unr', dir: -1, acc: 'GBB_VBR', need: ['cc'], rev: '202', doc: 'WA' },
   '551': { t: 'Withdrawal for scrapping', from: 'unr', dir: -1, acc: 'GBB_VNG', need: ['reason'], rev: '552', doc: 'WA' },
   '555': { t: 'Scrapping from blocked stock', from: 'blk', dir: -1, acc: 'GBB_VNG', need: ['reason'], rev: '556', doc: 'WA' },
+  '301': { t: 'Transfer posting plant to plant (one step)', from: 'unr', toPlant: true, rev: '302', doc: 'WA' },
   '541': { t: 'Transfer to stock provided to supplier', from: 'unr', toO: true, need: ['vendor'], rev: '542', doc: 'WA' },
   '311': { t: 'Transfer: storage location to storage location', from: 'unr', to: 'unr', toSloc: true, rev: '312', doc: 'WA' },
   '321': { t: 'Transfer: quality inspection to unrestricted', from: 'qi', to: 'unr', rev: '322', doc: 'WA' },
@@ -105,7 +109,7 @@ const MVT = {
   '702': { t: 'Physical inventory: shortage', from: 'unr', dir: -1, acc: 'GBB_INV', rev: '701', doc: 'WI' }
 };
 const MVTNAME = { '101': 'GR goods receipt', '102': 'GR reversal', '122': 'Return delivery to supplier', '123': 'Reversal of return delivery', '543': 'Consumption of subcontracting component', '544': 'Reversal of subcontracting consumption',
-  '202': 'Reversal of GI for cost center', '552': 'Reversal of scrapping', '556': 'Reversal of scrapping (blocked)', '312': 'Reversal of transfer sloc to sloc', '412K': 'Reversal of consignment withdrawal', '502': 'Reversal of receipt without PO', '562': 'Reversal of initial entry' };
+  '202': 'Reversal of GI for cost center', '302': 'Reversal of plant-to-plant transfer', '351': 'GI for stock transport order (to stock in transit)', '552': 'Reversal of scrapping', '556': 'Reversal of scrapping (blocked)', '312': 'Reversal of transfer sloc to sloc', '412K': 'Reversal of consignment withdrawal', '502': 'Reversal of receipt without PO', '562': 'Reversal of initial entry' };
 const mvtName = c => MVT[c]?.t || MVTNAME[c] || '';
 
 // ======================================================================
@@ -139,7 +143,8 @@ function poTotals(P, it) {
   const grVal = sum(h.filter(x => x.type === 'WE'), x => x.amount);
   const ir = r3(sum(h.filter(x => x.type === 'RE'), x => x.qty));
   const irVal = sum(h.filter(x => x.type === 'RE'), x => x.amount);
-  return { gr, grVal: r2(grVal), ir, irVal: r2(irVal), toDeliver: it.del ? 0 : r3(it.qty - gr), toInvoice: r3(gr - ir) };
+  const gi = r3(sum(h.filter(x => x.type === 'WA'), x => x.qty));
+  return { gr, grVal: r2(grVal), ir, irVal: r2(irVal), gi, toDeliver: it.del ? 0 : r3(it.qty - gr), toInvoice: P.type === 'UB' ? 0 : r3(gr - ir), toIssue: it.del ? 0 : r3(it.qty - gi) };
 }
 function onOrder(m, p) {
   let q = 0;
@@ -156,6 +161,12 @@ function createMaterial({ matnr, desc, type, uom, group, pgrp, plant = '1010', v
   for (const s of slocs) getStock(matnr, plant, s);
   for (const [s, q] of Object.entries(stock)) { getStock(matnr, plant, s).unr += q; pd.totQty += q; pd.totVal = r2(pd.totVal + q * pd.price); }
   return matnr;
+}
+function extendMaterial(matnr, plant, sloc, o = {}) {
+  const M = S.materials[matnr]; const src = Object.values(M.plants)[0];
+  M.plants[plant] = { pgrp: o.pgrp || src.pgrp, vc: o.vc || src.vc, ctrl: o.ctrl || src.ctrl, price: r2(o.price != null ? o.price : src.price), totQty: 0, totVal: 0, slocs: [sloc], mrp: { ...MRP0(), ...(o.mrp || {}) } };
+  getStock(matnr, plant, sloc);
+  if (o.stock) { getStock(matnr, plant, sloc).unr += o.stock; M.plants[plant].totQty = o.stock; M.plants[plant].totVal = r2(o.stock * M.plants[plant].price); }
 }
 function createVendor(v) {
   const id = nextNo('bp');
@@ -175,9 +186,9 @@ function createPR({ items, date = today(), origin = '' }) {
   HOOKS.prCreate.forEach(f => f(S.prs[num]));
   return num;
 }
-function createPO({ vendor, porg = '1010', pgrp = '001', cc = '1010', docDate = today(), items, type = 'NB' }) {
+function createPO({ vendor, porg = '1010', pgrp = '001', cc = '1010', docDate = today(), items, type = 'NB', splant = '' }) {
   const num = nextNo('po');
-  S.pos[num] = { num, type, vendor, porg, pgrp, cc, docDate, history: [],
+  S.pos[num] = { num, type, vendor, splant, porg, pgrp, cc, docDate, history: [],
     items: items.map((it, i) => ({ item: (i + 1) * 10, per: 1, grBased: true, cat: '', ...it })) };
   const P = S.pos[num];
   P.ers = !!S.vendors[vendor]?.porg?.[porg]?.ers;
@@ -216,6 +227,14 @@ function postGR({ po, lines, date = today(), mvt = '101', revOf = null, text = '
   const acc = []; const sign = mvt === '101' || mvt === '123' ? 1 : -1; const items = [];
   for (const l of lines) {
     const it = P.items.find(x => x.item === l.item);
+    if (P.type === 'UB') {
+      const v = r2(l.qty * it.price / it.per);
+      addSpecial(`T|${it.matnr}|${it.plant}`, -sign * l.qty);
+      const st = getStock(it.matnr, it.plant, l.sloc); st[l.stype] = r3(st[l.stype] + sign * l.qty);
+      P.history.push({ type: 'WE', mvt, doc: md, year, item: it.item, qty: sign * l.qty, amount: sign * v, date });
+      items.push({ line: items.length + 1, matnr: it.matnr, qty: l.qty, uom: it.uom, plant: it.plant, sloc: l.sloc, stype: l.stype, po, poItem: it.item, amount: v });
+      continue;
+    }
     if (it.acct === 'K') {
       const v = r2(l.qty * it.price / it.per);
       acc.push(line('gbb', it.glk || 'GBB_VBR', 'D', sign * v, { matnr: it.matnr || '', cc: it.cc }));
@@ -262,6 +281,28 @@ function postGR({ po, lines, date = today(), mvt = '101', revOf = null, text = '
   return md;
 }
 
+// ---------- engine: stock transport order goods issue (351) ----------
+function postSTOGI({ po, lines, date = today(), text = '' }) {
+  const P = S.pos[po]; const md = nextNo('md'); const year = date.slice(0, 4); const acc = []; const items = [];
+  for (const l of lines) {
+    const it = P.items.find(x => x.item === l.item); const pdF = plantData(it.matnr, P.splant), pdT = plantData(it.matnr, it.plant);
+    const v = r2(l.qty * pdF.price);
+    const st = getStock(it.matnr, P.splant, l.sloc); st.unr = r3(st.unr - l.qty);
+    applyVals([{ m: it.matnr, p: P.splant, q: -l.qty, v: -v }], 1);
+    const bsx = pdT.ctrl === 'S' ? r2(l.qty * pdT.price) : v; const prd = r2(v - bsx);
+    applyVals([{ m: it.matnr, p: it.plant, q: l.qty, v: bsx }], 1);
+    addSpecial(`T|${it.matnr}|${it.plant}`, l.qty);
+    acc.push(line('inv', pdT.vc, 'D', bsx, { matnr: it.matnr, plant: it.plant }));
+    if (prd) acc.push(line('PRD', 'PRD', 'D', prd, { matnr: it.matnr }));
+    acc.push(line('inv', pdF.vc, 'C', v, { matnr: it.matnr, plant: P.splant }));
+    P.history.push({ type: 'WA', mvt: '351', doc: md, year, item: it.item, qty: l.qty, amount: v, date });
+    items.push({ line: items.length + 1, matnr: it.matnr, qty: l.qty, uom: it.uom, plant: P.splant, sloc: l.sloc, stype: 'unr', po, poItem: it.item, amount: v, toPlant: it.plant });
+  }
+  const an = createAcc('WA', md, date, acc);
+  S.matDocs[md] = { num: md, year, date, mvt: '351', text, po, items, acc: an, revOf: null, reversedBy: null };
+  return md;
+}
+
 // ---------- engine: other goods movements ----------
 function checkDeltas(deltas) {
   const seen = new Set();
@@ -294,6 +335,12 @@ function planMvt({ mvt, items }) {
     if (D.to) deltas.push({ k: stockKey(x.matnr, x.plant, D.toSloc ? x.toSloc : x.sloc), st: D.to, q: x.qty });
     if (D.toO) deltas.push({ sp: O, q: x.qty });
     let value = 0;
+    if (D.toPlant) {
+      deltas.push({ k: stockKey(x.matnr, x.toPlant, x.toSloc), st: 'unr', q: x.qty });
+      const pdT = plantData(x.matnr, x.toPlant); const v = r2(x.qty * pd.price); const bsx = pdT.ctrl === 'S' ? r2(x.qty * pdT.price) : v; const prd = r2(v - bsx);
+      acc.push(line('inv', pdT.vc, 'D', bsx, { matnr: x.matnr, plant: x.toPlant })); if (prd) acc.push(line('PRD', 'PRD', 'D', prd, { matnr: x.matnr })); acc.push(line('inv', pd.vc, 'C', v, { matnr: x.matnr, plant: x.plant }));
+      vals.push({ m: x.matnr, p: x.plant, q: -x.qty, v: -v }, { m: x.matnr, p: x.toPlant, q: x.qty, v: bsx }); value = v;
+    }
     if (D.dir > 0) {
       let v = D.value && N(x.amount) > 0 ? r2(N(x.amount)) : r2(x.qty * pd.price);
       if (mvt === '411K') { const inf = findInfo(x.vendor, x.matnr, '1010', x.plant, 'K') || findInfo(x.vendor, x.matnr, '1010', x.plant); v = r2(x.qty * (inf ? inf.price / inf.per : pd.price)); }
@@ -308,7 +355,7 @@ function planMvt({ mvt, items }) {
       acc.push(line('inv', pd.vc, 'C', v, { matnr: x.matnr }));
       vals.push({ m: x.matnr, p: x.plant, q: -x.qty, v: -v }); value = v;
     }
-    out.push({ line: i + 1, matnr: x.matnr, qty: x.qty, uom: M.uom, plant: x.plant, sloc: x.sloc, toSloc: D.toSloc ? x.toSloc : '', stype: D.from || D.to || '', cc: x.cc || '', vendor: x.vendor || '', reason: x.reason || '', amount: value });
+    out.push({ line: i + 1, matnr: x.matnr, qty: x.qty, uom: M.uom, plant: x.plant, sloc: x.sloc, toSloc: D.toSloc || D.toPlant ? x.toSloc : '', toPlant: D.toPlant ? x.toPlant : '', stype: D.from || D.to || '', cc: x.cc || '', vendor: x.vendor || '', reason: x.reason || '', amount: value });
   });
   checkDeltas(deltas);
   return { deltas, vals, acc, out };
@@ -337,21 +384,21 @@ function reverseMvt(D, date = today()) {
 }
 
 // ---------- engine: invoice verification ----------
-function computeIR({ po, gross, taxCode, tax, items, cm = false, udc = 0 }) {
-  const P = S.pos[po]; const s = cm ? -1 : 1; const acc = []; const reasons = []; const valuation = []; const tol = S.cfg.tol;
+function computeIR({ po, gross, taxCode, tax, items, cm = false, udc = 0, sub = '' }) {
+  const P = S.pos[po]; const s = cm || sub === 'C' ? -1 : 1; const acc = []; const reasons = []; const valuation = []; const tol = S.cfg.tol;
   acc.push(line('AP', 'AP', 'C', s * gross, { vendor: P.vendor }));
   const net = sum(items, x => x.amount) || 1;
   let left = r2(udc);
   items.forEach((x, idx) => {
     const it = P.items.find(i => i.item === x.item); const t = poTotals(P, it); const pd = plantData(it.matnr, it.plant);
     const poVal = r2(x.qty * it.price / it.per); const diff = r2(x.amount - poVal);
-    if (!cm) {
+    if (!cm && !sub) {
       if (tol.dq && x.qty > t.toInvoice + 1e-9) reasons.push(`Item ${pad(it.item, 5)}: quantity variance (invoiced ${qf(x.qty)}, received but not invoiced ${qf(t.toInvoice)})`);
       if (diff > 0.004 && poVal > 0 && (diff / poVal * 100 > tol.pp + 1e-9 || diff > tol.ppAbs + 1e-9)) reasons.push(`Item ${pad(it.item, 5)}: price variance +${money(diff)} EUR (${(diff / poVal * 100).toFixed(1)}%; tolerance PP ${tol.pp}% / ${money(tol.ppAbs)} EUR)`);
     }
-    acc.push(line('WRX', 'WRX', 'D', s * poVal, { matnr: it.matnr }));
+    if (!sub) acc.push(line('WRX', 'WRX', 'D', s * poVal, { matnr: it.matnr }));
     const share = udc ? (idx === items.length - 1 ? left : r2(udc * x.amount / net)) : 0; left = r2(left - share);
-    const extra = r2(diff + share);
+    const extra = sub ? r2(x.amount + share) : r2(diff + share);
     if (extra) {
       if (it.acct === 'K') acc.push(line('gbb', it.glk || 'GBB_VBR', 'D', s * extra, { matnr: it.matnr || '', cc: it.cc }));
       else if (pd.ctrl === 'V' && pd.totQty >= x.qty) { acc.push(line('inv', pd.vc, 'D', s * extra, { matnr: it.matnr })); valuation.push({ m: it.matnr, p: it.plant, q: 0, v: s * extra }); }
@@ -361,13 +408,14 @@ function computeIR({ po, gross, taxCode, tax, items, cm = false, udc = 0 }) {
   if (tax) acc.push(line('VST', 'VST', 'D', s * tax, { tax: taxCode }));
   return { acc, reasons, blocked: reasons.length > 0, valuation };
 }
-function postIR({ po, date = today(), ref, gross, taxCode, tax, items, cm = false, udc = 0, num = '' }) {
-  const P = S.pos[po]; const c = computeIR({ po, gross, taxCode, tax, items, cm, udc });
-  const inv = num || nextNo('inv'); const year = date.slice(0, 4); const s = cm ? -1 : 1;
+function postIR({ po, date = today(), ref, gross, taxCode, tax, items, cm = false, udc = 0, num = '', sub = '' }) {
+  const P = S.pos[po]; const c = computeIR({ po, gross, taxCode, tax, items, cm, udc, sub });
+  const inv = num || nextNo('inv'); const year = date.slice(0, 4); const s = cm || sub === 'C' ? -1 : 1;
+  if (sub) items = items.map(x => ({ ...x, qty: 0 }));
   applyVals(c.valuation, 1);
-  for (const x of items) P.history.push({ type: 'RE', mvt: '', doc: inv, year, item: x.item, qty: s * x.qty, amount: s * r2(x.amount), date });
+  for (const x of items) P.history.push({ type: 'RE', mvt: '', doc: inv, year, item: x.item, qty: s * x.qty, amount: s * r2(x.amount), date, ...(sub ? { sub: true } : {}) });
   const an = createAcc('RE', inv, date, c.acc);
-  S.invoices[inv] = { num: inv, year, date, ref, po, vendor: P.vendor, gross: r2(gross), taxCode, tax: r2(tax), udc: r2(udc), cm, items: items.map(x => ({ ...x, amount: r2(x.amount) })),
+  S.invoices[inv] = { num: inv, year, date, ref, po, vendor: P.vendor, gross: r2(gross), taxCode, tax: r2(tax), udc: r2(udc), cm: cm || sub === 'C', sub, items: items.map(x => ({ ...x, amount: r2(x.amount) })),
     blocked: c.blocked, reasons: c.reasons, acc: an, released: null, status: 'posted', paid: null, valuation: c.valuation };
   return inv;
 }
@@ -379,6 +427,7 @@ function coreEnsure() {
   for (const k of Object.keys(GL)) delete GL[k];
   Object.assign(GL, JSON.parse(JSON.stringify(GL_DEF)), c.gl);
   ORG.slocs = { ...ORG0.slocs, ...c.slocs }; ORG.pgrps = { ...ORG0.pgrps, ...c.pgrps };
+  ORG.plantSlocs = JSON.parse(JSON.stringify(ORG0.plantSlocs)); for (const k of Object.keys(c.slocs)) if (!ORG.plantSlocs['1010'].includes(k)) ORG.plantSlocs['1010'].push(k);
   ORG.mtypeDef = JSON.parse(JSON.stringify(ORG0.mtypeDef));
   for (const [k, v] of Object.entries(c.mtypeCtrl)) if (ORG.mtypeDef[k]) ORG.mtypeDef[k].ctrl = v;
   S.reservations ??= {}; S.special ??= {}; S.boms ??= {}; S.consign ??= [];
@@ -393,6 +442,7 @@ function seed() {
   createMaterial({ matnr: 'TG15', desc: 'Ergonomic office chair', type: 'HAWA', uom: 'PC', group: 'L002', pgrp: '001', price: 145, stock: { '101A': 12 } });
   createMaterial({ matnr: 'FG16', desc: 'Printed shipping box (logo)', type: 'FERT', uom: 'PC', group: 'L003', pgrp: '002', price: 1.4, stock: { '101A': 150 }, mrp: { type: 'PD', lot: 'FX', fix: 500, pdt: 10 } });
   S.boms.FG16 = [{ comp: 'RM14', qty: 1 }];
+  extendMaterial('TG12', '1020', '102A', { stock: 20 }); extendMaterial('TG15', '1020', '102A', {});
   const pd = (o = {}) => ({ porg: { '1010': { curr: 'EUR', terms: 'NT30', grIv: true, ers: false, ...o } } });
   const v1 = createVendor({ name: "Côte d'Azur IT Distribution", search: 'CAZIT', street: '12 avenue Jean Médecin', post: '06000', city: 'Nice', country: 'FR', lang: 'EN', cc: { '1010': { recon: '21100000', terms: 'NT30' } }, ...pd() });
   const v2 = createVendor({ name: 'Provence Office Supplies', search: 'PROVOFF', street: '45 boulevard Longchamp', post: '13001', city: 'Marseille', country: 'FR', lang: 'FR', cc: { '1010': { recon: '21100000', terms: 'NT45' } }, ...pd({ terms: 'NT45' }) });
@@ -426,6 +476,7 @@ function load() {
 function emit(type, data = {}) {
   S.log.push({ t: Date.now(), ...data, type });
   persist();
+  (HOOKS.emit || []).forEach(f => { try { f(S.log[S.log.length - 1]); } catch (e) { console.error(e); } });
   checkScenario();
 }
 
@@ -555,7 +606,7 @@ const F4 = {
   pgrp: () => Object.entries(ORG.pgrps), cc: () => Object.entries(ORG.cc), mtype: () => Object.entries(ORG.mtypes),
   mgroup: () => Object.entries(ORG.mgroups), uom: () => Object.entries(ORG.uoms), tax: () => Object.entries(ORG.tax).map(([k, v]) => [k, v[0]]),
   terms: () => Object.entries(ORG.payterms), country: () => Object.entries(ORG.countries), vclass: () => Object.entries(ORG.vclasses),
-  po: () => Object.values(S.pos).reverse().map(p => [p.num, vname(p.vendor), p.items.map(i => `${i.matnr} ×${qf(i.qty)}`).join(', ')]),
+  po: () => Object.values(S.pos).reverse().map(p => [p.num, p.type === 'UB' ? `STO from plant ${p.splant}` : vname(p.vendor), p.items.map(i => `${i.matnr} ×${qf(i.qty)}`).join(', ')]),
   pr: () => Object.values(S.prs).reverse().map(p => [p.num, p.items.map(i => `${i.matnr} ×${qf(i.qty)}`).join(', '), p.items.every(i => i.poRef) ? 'Ordered' : 'Open']),
   matdoc: () => Object.values(S.matDocs).reverse().map(d => [d.num, `${d.mvt} ${mvtName(d.mvt)}`, `${d.items[0]?.po ? 'PO ' + d.items[0].po + ' · ' : ''}${fmtD(d.date)}${d.reversedBy ? ' · reversed' : ''}`]),
   inv: () => Object.values(S.invoices).reverse().map(i => [i.num, vname(i.vendor), `${i.cm ? 'Credit memo · ' : ''}${money(i.gross)} EUR · ${i.status === 'parked' ? 'parked' : i.status === 'reversed' ? 'reversed' : i.blocked ? 'blocked' : i.paid ? 'paid' : 'posted'}`]),
@@ -681,7 +732,7 @@ function mrpValidate(m, go) {
 }
 const mrpOut = m => ({ type: m.mrpType, rop: N(m.rop) || 0, lot: m.lot, fix: N(m.fix) || 0, max: N(m.max) || 0, safety: N(m.safety) || 0, pdt: N(m.pdt) || 0 });
 TX.MM01 = {
-  title: c => c.m.step === 2 ? `Create Material ${U(c.m.matnr)} (${ORG.mtypes[c.m.type]})` : 'Create Material (Initial Screen)',
+  title: c => c.m.step === 2 ? (c.m.extend ? `Extend Material ${U(c.m.matnr)} to Plant ${c.m.plant}` : `Create Material ${U(c.m.matnr)} (${ORG.mtypes[c.m.type]})`) : 'Create Material (Initial Screen)',
   init: () => ({ step: 1, matnr: '', ind: 'R', type: 'HAWA', plant: '1010', sloc: '101A', desc: '', uom: 'PC', group: '', pgrp: '001', vc: '', ctrl: '', price: '', mrpType: 'ND', rop: '', lot: 'EX', fix: '', max: '', safety: '', pdt: '5' }),
   tb: c => c.m.step === 2 ? [] : [{ l: 'Select view(s)', i: '☰', a: c => act(TX.MM01.enter) }],
   render: c => {
@@ -692,7 +743,7 @@ TX.MM01 = {
       `<div class="tip">The material number uses external numbering in this client: type your own (e.g. <b>TG20</b>). Views created: Basic data 1, Purchasing, MRP 1, Plant data/stor., Accounting 1.</div>`;
     const t = tabOn(c, MATVIEWS);
     let inner = '';
-    if (t === 'basic') inner = F('Material description', 'desc', { req: 1, w: 40 }) + F('Base unit of measure', 'uom', { req: 1, f4: 'uom', w: 5, desc: ORG.uoms[U(m.uom)] || '' }) + F('Material group', 'group', { req: 1, f4: 'mgroup', w: 8, desc: ORG.mgroups[U(m.group)] || '' });
+    if (t === 'basic') inner = F('Material description', 'desc', { req: 1, w: 40, ro: m.extend }) + F('Base unit of measure', 'uom', { req: 1, f4: 'uom', w: 5, ro: m.extend, desc: ORG.uoms[U(m.uom)] || '' }) + F('Material group', 'group', { req: 1, f4: 'mgroup', w: 8, ro: m.extend, desc: ORG.mgroups[U(m.group)] || '' }) + (m.extend ? '<div class="tip">Client-level data (description, unit, group) already exists: you only maintain the plant-level views for the new plant.</div>' : '');
     if (t === 'purch') inner = F('Purchasing group', 'pgrp', { req: 1, f4: 'pgrp', w: 5, desc: ORG.pgrps[m.pgrp] || '' }) + F('Order unit', 'uom', { ro: 1, w: 5 }) + `<div class="tip">The purchasing group is the buyer (or team) responsible for this material.</div>`;
     if (t === 'mrp') inner = mrpFields(m, false);
     if (t === 'plant') inner = F('Plant', 'plant', { ro: 1, w: 6, desc: ORG.plants[m.plant] }) + F('Storage location', 'sloc', { ro: 1, w: 6, desc: ORG.slocs[U(m.sloc)] });
@@ -706,8 +757,17 @@ TX.MM01 = {
       req(c, ['matnr', 'type', 'plant', 'sloc']);
       m.matnr = U(m.matnr); m.type = U(m.type); m.sloc = U(m.sloc);
       if (!/^[A-Z0-9-]{2,18}$/.test(m.matnr)) err('Material number: use 2–18 letters, digits or hyphens', null, 'matnr');
-      if (S.materials[m.matnr]) err(`Material ${m.matnr} already exists (use MM02 to change it)`, 'MAT_EXISTS', 'matnr');
+      if (S.materials[m.matnr]) {
+        const M = S.materials[m.matnr];
+        needOf(ORG.plants, m.plant, 'Plant', 'plant');
+        if (M.plants[m.plant]) err(`Material ${m.matnr} already exists in plant ${m.plant} (use MM02 to change it)`, 'MAT_EXISTS', 'matnr');
+        if (!slocOk(m.plant, m.sloc)) err(`Storage location ${m.sloc} does not exist in plant ${m.plant}`, null, 'sloc');
+        const src = Object.values(M.plants)[0];
+        Object.assign(m, { extend: true, type: M.type, desc: M.desc, uom: M.uom, group: M.group, pgrp: src.pgrp, vc: src.vc, ctrl: src.ctrl, price: String(src.price), mrpType: 'ND', step: 2, tab: 'purch' });
+        msg('I', `Material ${m.matnr} already exists: maintain its views for plant ${m.plant} (plant extension)`); return;
+      }
       needOf(ORG.mtypes, m.type, 'Material type', 'type'); needOf(ORG.plants, m.plant, 'Plant', 'plant'); needOf(ORG.slocs, m.sloc, 'Storage location', 'sloc');
+      if (!slocOk(m.plant, m.sloc)) err(`Storage location ${m.sloc} does not exist in plant ${m.plant}`, null, 'sloc');
       Object.assign(m, { vc: ORG.mtypeDef[m.type].vc, ctrl: ORG.mtypeDef[m.type].ctrl, step: 2, tab: 'basic', group: m.type === 'ROH' ? 'L003' : '' });
       return;
     }
@@ -730,6 +790,7 @@ TX.MM01 = {
     if (c.m.step === 1) err('Select views first: press Enter');
     TX.MM01.validate(c);
     const m = c.m;
+    if (m.extend) { extendMaterial(m.matnr, m.plant, m.sloc, { pgrp: m.pgrp, vc: m.vc, ctrl: m.ctrl, price: N(m.price), mrp: mrpOut(m) }); emit('MAT_EXTENDED', { matnr: m.matnr, plant: m.plant }); c.m = TX.MM01.init(); msg('S', `Material ${m.matnr} extended to plant ${m.plant}`); return; }
     createMaterial({ matnr: m.matnr, desc: m.desc.trim(), type: m.type, uom: U(m.uom), group: U(m.group), pgrp: m.pgrp, plant: m.plant, vc: m.vc, ctrl: m.ctrl, price: N(m.price), slocs: [m.sloc], mrp: mrpOut(m) });
     emit('MAT_CREATED', { matnr: m.matnr, mtype: m.type });
     c.m = TX.MM01.init();
@@ -973,8 +1034,27 @@ TX.ME5A = {
 // ---------------- ME21N / ME23N: Purchase order ----------------
 const blankPO = () => ({ acct: '', cc: '', group: '', cat: '', matnr: '', short: '', qty: '', uom: '', date: '', price: '', plant: '', sloc: '', prRef: '', prItem: '', agmt: '', agmtItem: '', conds: null, _auto: true });
 const condNet = c => r2((N(c.gross) || 0) * (1 - (N(c.disc) || 0) / 100) + (N(c.frt) || 0));
+function fillSTO(c) {
+  const m = c.m, h = m.hdr; h.splant = String(h.splant || '').trim();
+  if (!ORG.plants[h.splant]) err(`Plant ${h.splant || '(empty)'} does not exist`, null, 'hdr.splant');
+  m.items.forEach((it, i) => {
+    if (!String(it.matnr).trim()) return;
+    const k = `items.${i}.`, no = pad((i + 1) * 10, 5);
+    if (it.acct || it.cat) err(`Item ${no}: stock transport orders take neither account assignment nor item category`, null, k + 'cat');
+    it.matnr = U(it.matnr); it.plant = String(it.plant || '').trim();
+    if (!it.plant || it.plant === h.splant && !it._pset) it.plant = Object.keys(ORG.plants).find(p => p !== h.splant);
+    if (it.plant === h.splant) err(`Item ${no}: receiving plant must differ from supplying plant ${h.splant}`, null, k + 'plant');
+    const M = needMat(it.matnr, h.splant, k + 'matnr'); needMat(it.matnr, it.plant, k + 'matnr');
+    it.short = M.desc; it.uom = M.uom; it.group = M.group;
+    it.sloc = U(it.sloc); if (!slocOk(it.plant, it.sloc)) it.sloc = ORG.plantSlocs[it.plant][0];
+    if (!it.date) it.date = fmtD(dPlus(2));
+    const pdF = M.plants[h.splant]; it.price = pdF.price.toFixed(2); it.conds = { gross: pdF.price, disc: 0, frt: 0, src: `Valuation price plant ${h.splant}` }; it._auto = true;
+  });
+  return [];
+}
 function fillPOItems(c) {
   const m = c.m, h = m.hdr;
+  if (h.type === 'UB') return fillSTO(c);
   h.vendor = String(h.vendor).trim();
   m.items.forEach(it => { const a = String(it.agmt || '').trim(); if (a && !h.vendor && S.contracts?.[a]) h.vendor = S.contracts[a].vendor; });
   if (h.vendor) needVendor(h.vendor, h.porg, 'hdr.vendor');
@@ -1029,7 +1109,7 @@ function prSourceList() {
 const poInit = (p = {}) => {
   const items = (p.items || []).map(x => ({ ...blankPO(), ...x, qty: String(x.qty ?? ''), price: x.price != null ? Number(x.price).toFixed(2) : '', _auto: x.price == null }));
   while (items.length < 3) items.push(blankPO());
-  return { hdr: { type: 'NB', vendor: p.vendor || '', docDate: fmtD(today()), porg: '1010', pgrp: p.pgrp || '001', cc: '1010' }, items, doc: innerWidth > 820, _pre: !!p.items, src: p.src || '' };
+  return { hdr: { type: 'NB', splant: '1010', vendor: p.vendor || '', docDate: fmtD(today()), porg: '1010', pgrp: p.pgrp || '001', cc: '1010' }, items, doc: innerWidth > 820, _pre: !!p.items, src: p.src || '' };
 };
 TX.ME21N = {
   title: 'Create Purchase Order',
@@ -1067,7 +1147,7 @@ TX.ME21N = {
     const m = c.m, h = m.hdr;
     const net = sum(m.items.filter(x => String(x.matnr).trim()), x => N(x.qty) * N(x.price) || 0);
     const docov = m.doc ? `<section class="box docov"><h3>Document overview · My open requisitions</h3><div class="in">${grid([{ h: 'Purch. req.', f: r => `<b>${r.num}</b>/${r.item}${r.rel ? ' <span class="badge warn">not released</span>' : ''}` }, { h: 'Material', f: r => `${r.matnr} ×${qf(r.qty)}` }, { h: '', f: r => `<button type="button" class="btn sm" data-act="adopt" data-pr="${r.num}" data-item="${r.item}" title="Adopt into PO">Adopt ▸</button>` }], prSourceList(), { empty: 'No open requisitions' })}</div></section>` : '';
-    const main = box('Header', `<div class="cols"><div>${F('Order type', 'hdr.type', { ro: 1, w: 4, desc: 'Standard PO' })}${F('Supplier', 'hdr.vendor', { req: 1, f4: 'vendor', w: 12, desc: vname(String(h.vendor).trim()) })}${F('Doc. date', 'hdr.docDate', { w: 10 })}</div>
+    const main = box('Header', `<div class="cols"><div>${F('Order type', 'hdr.type', { type: 'select', opts: { NB: 'NB Standard PO', UB: 'UB Stock transport order' }, rr: 1 })}${h.type === 'UB' ? F('Supplying plant', 'hdr.splant', { req: 1, f4: 'plant', w: 6, desc: ORG.plants[String(h.splant).trim()] || '' }) : F('Supplier', 'hdr.vendor', { req: 1, f4: 'vendor', w: 12, desc: vname(String(h.vendor).trim()) })}${F('Doc. date', 'hdr.docDate', { w: 10 })}</div>
       <div>${F('Purch. org.', 'hdr.porg', { req: 1, f4: 'porg', w: 6 })}${F('Purch. group', 'hdr.pgrp', { req: 1, f4: 'pgrp', w: 4, desc: ORG.pgrps[h.pgrp] || '' })}${F('Company code', 'hdr.cc', { ro: 1, w: 6, desc: 'Riviera Trading SAS' })}</div></div>`,
       `<span class="small">Net value: <b>${money(net)} EUR</b></span>`) +
       box('Item overview', grid([
@@ -1085,7 +1165,7 @@ TX.ME21N = {
   validate: c => {
     const m = c.m, h = m.hdr;
     fillPOItems(c);
-    if (!String(h.vendor).trim()) err('Enter a supplier', null, 'hdr.vendor');
+    if (h.type !== 'UB' && !String(h.vendor).trim()) err('Enter a supplier', null, 'hdr.vendor');
     const d0 = parseD(h.docDate); if (!d0) err('Enter a valid date (DD.MM.YYYY)', null, 'hdr.docDate');
     const rows = m.items.map((it, i) => ({ it, i })).filter(x => String(x.it.matnr).trim() || (x.it.acct && String(x.it.short || '').trim()));
     if (!rows.length) err('Enter at least one item', null, 'items.0.matnr');
@@ -1104,12 +1184,12 @@ TX.ME21N = {
   },
   save: c => {
     const items = TX.ME21N.validate(c), h = c.m.hdr;
-    const num = createPO({ vendor: h.vendor, porg: h.porg, pgrp: h.pgrp, cc: h.cc, docDate: parseD(h.docDate), items });
+    const num = createPO({ vendor: h.type === 'UB' ? '' : h.vendor, type: h.type, splant: h.type === 'UB' ? h.splant : '', porg: h.porg, pgrp: h.pgrp, cc: h.cc, docDate: parseD(h.docDate), items });
     const P = S.pos[num];
-    emit('PO_CREATED', { num, vendor: h.vendor, value: r2(sum(P.items, x => x.qty * x.price / x.per)), rel: !!P.relReq, items: items.map(x => ({ matnr: x.matnr, short: x.short, qty: x.qty, price: x.price, prRef: x.prRef, agmt: x.agmt, cat: x.cat, acct: x.acct, cc: x.cc, src: x.conds?.src || '' })) });
+    emit('PO_CREATED', { num, vendor: P.vendor, type: P.type, splant: P.splant, value: r2(sum(P.items, x => x.qty * x.price / x.per)), rel: !!P.relReq, items: items.map(x => ({ matnr: x.matnr, short: x.short, qty: x.qty, price: x.price, prRef: x.prRef, agmt: x.agmt, cat: x.cat, acct: x.acct, cc: x.cc, src: x.conds?.src || '' })) });
     c.m = poInit();
     const warn = items.filter(x => x.agmt).map(x => { const K = S.contracts[x.agmt]; const ki = K.items.find(y => y.item === x.agmtItem); const used = ctrUsage(K.num, ki.item); return K.type === 'MK' && used.qty > ki.target ? `target quantity of contract ${K.num} item ${ki.item} exceeded (${qf(used.qty)} / ${qf(ki.target)})` : K.type === 'WK' && ctrUsage(K.num).value > K.targetVal ? `target value of contract ${K.num} exceeded` : ''; }).filter(Boolean);
-    msg(warn.length ? 'W' : 'S', `Standard PO created under the number ${num}${P.relReq ? ' (subject to release)' : ''}${warn.length ? ': ' + warn[0] : ''}`);
+    msg(warn.length ? 'W' : 'S', `${P.type === 'UB' ? 'Stock transport order' : 'Standard PO'} created under the number ${num}${P.relReq ? ' (subject to release)' : ''}${warn.length ? ': ' + warn[0] : ''}`);
   }
 };
 function ctrUsage(ctr, item) {
@@ -1119,7 +1199,7 @@ function ctrUsage(ctr, item) {
 }
 const POTABS = [['hist', 'Purchase order history'], ['status', 'Status'], ['cond', 'Conditions']];
 TX.ME23N = {
-  title: c => c.m.show ? `${S.pos[c.m.po]?.type === 'LP' ? 'Scheduling Agreement' : 'Standard PO'} ${c.m.po} Display` : 'Display Purchase Order',
+  title: c => c.m.show ? `${S.pos[c.m.po]?.type === 'LP' ? 'Scheduling Agreement' : S.pos[c.m.po]?.type === 'UB' ? 'Stock Transport Order' : 'Standard PO'} ${c.m.po} Display` : 'Display Purchase Order',
   init: p => ({ po: p.po || '', show: false, sel: 0, _auto: !!p.po }),
   onOpen: c => { if (c.m._auto) TX.ME23N.enter(c); },
   tb: c => c.m.show ? [{ l: 'Other purchase order', i: '⇄', a: c => act(c => { c.m.show = false; c.m.po = ''; c.m._auto = false; }) }, ...HOOKS.poTb.flatMap(f => f(c, S.pos[c.m.po]) || [])] : [],
@@ -1134,7 +1214,7 @@ TX.ME23N = {
     if (t === 'hist') {
       const h = P.history.filter(x => x.item === it.item);
       const foot = h.length ? `<tr class="tot"><td colspan="5">Total goods receipts</td><td class="r">${qf(tt.gr)}</td><td class="r">${money(tt.grVal)}</td><td></td></tr><tr class="tot"><td colspan="5">Total invoice receipts</td><td class="r">${qf(tt.ir)}</td><td class="r">${money(tt.irVal)}</td><td></td></tr>` : '';
-      detail = grid([{ h: 'Sh. text', f: r => r.type === 'WE' ? 'WE' : (r.qty < 0 ? 'RE-H' : 'RE-L') }, { h: 'MvT', k: 'mvt' }, { h: 'Material doc.', f: r => r.type === 'WE' ? lnk('MIGO', { display: r.doc }, r.doc) : lnk('MIR4', { inv: r.doc }, r.doc) }, { h: 'Item', f: () => '1' }, { h: 'Pstng date', f: r => fmtD(r.date) },
+      detail = grid([{ h: 'Sh. text', f: r => r.type === 'WA' ? 'WA' : r.type === 'WE' ? 'WE' : r.mr11 ? 'Acct maint.' : r.sub ? (r.amount < 0 ? 'NB-H' : 'NB-L') : (r.qty < 0 ? 'RE-H' : 'RE-L') }, { h: 'MvT', k: 'mvt' }, { h: 'Material doc.', f: r => r.type === 'RE' ? lnk('MIR4', { inv: r.doc }, r.doc) : lnk('MIGO', { display: r.doc }, r.doc) }, { h: 'Item', f: () => '1' }, { h: 'Pstng date', f: r => fmtD(r.date) },
         { h: 'Quantity', r: 1, f: r => qf(r.qty) }, { h: 'Amount EUR', r: 1, f: r => money(r.amount) }, { h: 'Status', f: r => { if (r.type !== 'RE') return ''; const iv = S.invoices[r.doc]; return iv?.status === 'reversed' ? '<span class="badge">Reversed</span>' : iv?.blocked ? '<span class="badge err">Blocked for payment</span>' : iv?.paid ? '<span class="badge ok">Paid</span>' : ''; } }], h, { empty: 'No PO history yet: no goods receipt or invoice posted for this item', foot });
     }
     if (t === 'status') detail = `<table class="g orgtbl"><tr><td>Item category</td><td>${ORG.itemCats[it.cat || '']}</td></tr><tr><td>Account assignment</td><td>${it.acct === 'K' ? `K Cost center ${it.cc} ${esc(ORG.costc[it.cc] || '')} · G/L ${GL[it.glk || 'GBB_VBR'][0]} ${esc(GL[it.glk || 'GBB_VBR'][1])}` : 'None (stock material)'}</td></tr><tr><td>Ordered</td><td>${qf(it.qty)} ${it.uom} · ${money(it.qty * it.price / it.per)} EUR</td></tr><tr><td>Delivered</td><td>${qf(tt.gr)} ${it.uom}</td></tr><tr><td>Still to deliver</td><td>${qf(tt.toDeliver)} ${it.uom}${it.del ? ' (item deleted)' : ''}</td></tr><tr><td>Invoiced</td><td>${qf(tt.ir)} ${it.uom} · ${money(tt.irVal)} EUR</td></tr><tr><td>GR-based invoice verification</td><td>${it.grBased ? 'Yes' : 'No'}${P.ers ? ' · ERS (evaluated receipt settlement)' : ''}</td></tr>${it.agmt ? `<tr><td>Outline agreement</td><td>${lnk('ME33K', { ctr: it.agmt }, `${it.agmt} / ${it.agmtItem}`)}</td></tr>` : ''}</table>` +
@@ -1142,7 +1222,7 @@ TX.ME23N = {
     if (t === 'cond') { const cd = it.conds || { gross: it.price, disc: 0, frt: 0, src: '' }; const g = cd.gross, d = r2(g * (cd.disc || 0) / 100);
       detail = it.cat === 'K' ? '<p class="muted">Consignment item: no price in the PO. Liability is created when stock is withdrawn (411 K) and settled with MRKO, at the consignment info record price.</p>' :
         `<table class="g"><tr><th>CnTy</th><th>Name</th><th class="r">Amount</th><th class="r">Condition value</th></tr><tr><td>PB00</td><td>Gross price</td><td class="r">${money(g)} EUR</td><td class="r">${money(g * it.qty)}</td></tr>${cd.disc ? `<tr><td>RA01</td><td>Discount % on gross</td><td class="r">-${qf(cd.disc)} %</td><td class="r">-${money(d * it.qty)}</td></tr>` : ''}${cd.frt ? `<tr><td>FRB1</td><td>Freight (value)</td><td class="r">${money(cd.frt)} EUR</td><td class="r">${money(cd.frt * it.qty)}</td></tr>` : ''}<tr class="tot"><td></td><td>Net value</td><td class="r">${money(it.price)} EUR</td><td class="r">${money(it.qty * it.price / it.per)}</td></tr></table><p class="small muted">Source: ${esc(cd.src || '—')}</p>`; }
-    return box(`Header · ${P.type} ${P.type === 'LP' ? 'Scheduling agreement' : 'Standard PO'} ${P.num}`, `<div class="cols"><div><div class="f"><label>Supplier</label><b>${P.vendor}</b><span>${esc(V?.name)}</span></div><div class="f"><label>Doc. date</label><span>${fmtD(P.docDate)}</span><span></span></div></div>
+    return box(`Header · ${P.type} ${P.type === 'LP' ? 'Scheduling agreement' : P.type === 'UB' ? 'Stock transport order' : 'Standard PO'} ${P.num}`, `<div class="cols"><div>${P.type === 'UB' ? `<div class="f"><label>Supplying plant</label><b>${P.splant}</b><span>${esc(ORG.plants[P.splant])}</span></div>` : `<div class="f"><label>Supplier</label><b>${P.vendor}</b><span>${esc(V?.name)}</span></div>`}<div class="f"><label>Doc. date</label><span>${fmtD(P.docDate)}</span><span></span></div></div>
       <div><div class="f"><label>Purch. org. / group</label><span>${P.porg} / ${P.pgrp}</span><span></span></div><div class="f"><label>Company code</label><span>${P.cc}</span><span></span></div></div></div>${HOOKS.poHeader.map(f => f(P) || '').join('')}`) +
       box('Item overview', grid([{ h: 'Itm', k: 'item' }, { h: 'A', f: r => r.acct || '' }, { h: 'I', f: r => r.cat || '' }, { h: 'Material', f: r => r.matnr || '—' }, { h: 'Short text', k: 'short' }, { h: 'PO qty', r: 1, f: r => qf(r.qty) }, { h: 'OUn', k: 'uom' }, { h: 'Deliv. date', f: r => fmtD(r.date) }, { h: 'Net price', r: 1, f: r => r.cat === 'K' ? '' : money(r.price) }, { h: 'Plant', k: 'plant' }, { h: 'SLoc', k: 'sloc' }, { h: 'Purch. req.', f: r => r.prRef ? lnk('ME53N', { pr: r.prRef }, r.prRef) : '' },
         { h: 'Status', f: r => { if (r.del) return '<span class="badge err">Deleted</span>'; const x = poTotals(P, r); return x.toDeliver <= 0 ? (x.toInvoice <= 0 || r.cat === 'K' ? '<span class="badge ok">Delivered & invoiced</span>' : '<span class="badge warn">To be invoiced</span>') : x.gr > 0 ? '<span class="badge warn">Partly delivered</span>' : '<span class="badge">Open</span>'; } }],
@@ -1160,9 +1240,9 @@ TX.ME23N = {
 };
 
 // ---------------- MIGO: Goods movement ----------------
-const MIGO_REF = { A01: { R01: 'R01 Purchase Order', R10: 'R10 Other' }, A02: { R02: 'R02 Material Document' }, A03: { R02: 'R02 Material Document' }, A04: { R02: 'R02 Material Document' }, A07: { R10: 'R10 Other', R09: 'R09 Reservation' }, A08: { R10: 'R10 Other' } };
-const MIGO_MVT = { A01: ['501', '561'], A07: ['201', '551', '555', '541'], A08: ['311', '321', '322', '343', '344', '411K', '542'] };
-const blankOther = () => ({ matnr: '', qty: '', sloc: '101A', toSloc: '', cc: '', vendor: '', amount: '', reason: '' });
+const MIGO_REF = { A01: { R01: 'R01 Purchase Order', R10: 'R10 Other' }, A02: { R02: 'R02 Material Document' }, A03: { R02: 'R02 Material Document' }, A04: { R02: 'R02 Material Document' }, A07: { R10: 'R10 Other', R09: 'R09 Reservation', R01: 'R01 Purchase Order (STO)' }, A08: { R10: 'R10 Other' } };
+const MIGO_MVT = { A01: ['501', '561'], A07: ['201', '551', '555', '541'], A08: ['311', '301', '321', '322', '343', '344', '411K', '542'] };
+const blankOther = () => ({ matnr: '', qty: '', plant: '1010', sloc: '101A', toPlant: '', toSloc: '', cc: '', vendor: '', amount: '', reason: '' });
 const isOther = m => m.ref === 'R10';
 const migoBase = { A01: 'Goods Receipt', A02: 'Return Delivery', A03: 'Cancellation', A04: 'Display', A07: 'Goods Issue', A08: 'Transfer Posting' };
 function migoInit(p = {}) {
@@ -1190,6 +1270,7 @@ TX.MIGO = {
       ${isOther(m) ? '' : I('doc', { req: 1, f4: docF4, w: 12, ph: { po: 'PO number', res: 'Reservation', matdoc: 'Mat. doc.' }[docF4] })}
       ${m.action === 'A01' && m.ref === 'R01' ? `<span class="muted">GR goods receipt</span> ${I('_m101', { ro: 1, w: 4 }).replace('value=""', 'value="101"')}` : ''}
       ${isOther(m) ? I('mvt', { type: 'select', opts: Object.fromEntries(MIGO_MVT[m.action].map(x => [x, `${x} ${MVT[x].t}`])), rr: 1 }) : ''}
+      ${m.action === 'A07' && m.ref === 'R01' ? '<span class="muted">GI for stock transport order · MvT 351</span>' : ''}
       ${m.action === 'A02' ? `<span class="muted">Reason</span> ${I('reason', { type: 'select', opts: ORG.reasons })} <span class="muted">MvT 122</span>` : ''}
       ${isOther(m) ? '' : '<button type="button" class="btn sm" data-act="load">⏵ Execute</button>'}</div></div>`;
     if (!m.loaded) return top + `<div class="tip">${{ A01: 'Enter the purchase order number (F4 to search) and press <b>Enter</b>. Then tick <b>OK</b> for each line you received and <b>Post</b>. Choose <b>R10 Other</b> for receipts without a PO (501) or initial stock entry (561).', A02: 'Return goods to the supplier: enter the goods receipt material document (101) and press Enter. Movement type 122 reduces stock and the PO delivered quantity.', A03: 'Enter the material document to cancel and press Enter. The system posts the reversal movement type (102, 202, 312…).', A04: 'Enter the material document number and press Enter.', A07: 'Choose a reference: R10 Other (cost centre issue 201, scrapping 551, provide to subcontractor 541) or R09 Reservation.', A08: 'Transfer postings change the storage location or stock type without a value change, or move consignment stock to own stock (411 K).' }[m.action]}</div>`;
@@ -1197,29 +1278,30 @@ TX.MIGO = {
       const D = S.matDocs[m.loaded];
       return top + box(`Material document ${D.num} / ${D.year}`, `<div class="cols"><div><div class="f"><label>Movement type</label><b>${D.mvt}</b><span>${esc(mvtName(D.mvt))}</span></div><div class="f"><label>Posting date</label><span>${fmtD(D.date)}</span><span></span></div>${D.text ? `<div class="f"><label>Header text</label><span>${esc(D.text)}</span><span></span></div>` : ''}</div>
         <div><div class="f"><label>Accounting document</label>${D.acc ? lnk('FB03', { doc: D.acc }, D.acc) : '<span class="muted">None (no value change)</span>'}<span></span></div><div class="f"><label>Status</label><span>${D.reversedBy ? `Reversed by ${D.reversedBy}` : D.revOf ? `Reversal of ${D.revOf}` : 'Posted'}</span><span></span></div>${D.resRef ? `<div class="f"><label>Reservation</label><span>${D.resRef}</span><span></span></div>` : ''}${D.piRef ? `<div class="f"><label>Phys. inv. document</label><span>${D.piRef}</span><span></span></div>` : ''}</div></div>`) +
-        box('Items', grid([{ h: 'Line', k: 'line' }, { h: 'MvT', f: r => r.mvt || D.mvt }, { h: 'Material', k: 'matnr' }, { h: 'Description', f: r => esc(S.materials[r.matnr]?.desc) }, { h: 'Quantity', r: 1, f: r => qf(r.qty) }, { h: 'EUn', k: 'uom' }, { h: 'Plant', k: 'plant' }, { h: 'SLoc', f: r => r.toSloc ? `${r.sloc} → ${r.toSloc}` : r.sloc }, { h: 'Stock type', f: r => r.special === 'K' ? 'Consignment (K)' : r.special === 'O' ? 'Provided to supplier (O)' : ORG.stypes[r.stype] || '' },
+        box('Items', grid([{ h: 'Line', k: 'line' }, { h: 'MvT', f: r => r.mvt || D.mvt }, { h: 'Material', k: 'matnr' }, { h: 'Description', f: r => esc(S.materials[r.matnr]?.desc) }, { h: 'Quantity', r: 1, f: r => qf(r.qty) }, { h: 'EUn', k: 'uom' }, { h: 'Plant', f: r => r.toPlant ? `${r.plant} → ${r.toPlant}` : r.plant }, { h: 'SLoc', f: r => r.toSloc ? `${r.sloc} → ${r.toSloc}` : r.sloc }, { h: 'Stock type', f: r => r.special === 'K' ? 'Consignment (K)' : r.special === 'O' ? 'Provided to supplier (O)' : ORG.stypes[r.stype] || '' },
           { h: 'Reference', f: r => r.po ? lnk('ME23N', { po: r.po }, `${r.po} ${r.poItem}`) : r.cc ? `Cost ctr ${r.cc}` : r.vendor ? `Supplier ${r.vendor}` : '' }, { h: 'Amount EUR', r: 1, f: r => money(r.amount) }], D.items));
     }
     const hdr = box('Header', `<div class="cols"><div>${F('Document date', 'docDate', { w: 10 })}${F('Posting date', 'postDate', { w: 10 })}</div><div>${F('Header text', 'text', { w: 24 })}${m.action === 'A01' && m.ref === 'R01' ? `<div class="f"><label>Supplier</label><b>${S.pos[m.loaded].vendor}</b><span>${esc(vname(S.pos[m.loaded].vendor))}</span></div>` : ''}${m.ref === 'R09' ? `<div class="f"><label>Cost center</label><b>${S.reservations[m.loaded].cc}</b><span>${esc(ORG.costc[S.reservations[m.loaded].cc] || '')}</span></div>` : ''}</div></div>`);
     if (isOther(m)) {
       const D = MVT[m.mvt];
       const cols = [{ h: 'Line', f: (r, i) => i + 1 }, { h: 'Material', f: (r, i) => I(`lines.${i}.matnr`, { f4: 'mat', w: 9 }) }, { h: 'Description', f: r => esc(S.materials[U(r.matnr)]?.desc || '') }, { h: 'Qty in UnE', f: (r, i) => I(`lines.${i}.qty`, { w: 6, num: 1 }) }, { h: 'EUn', f: r => esc(S.materials[U(r.matnr)]?.uom || '') },
-        { h: 'SLoc', f: (r, i) => I(`lines.${i}.sloc`, { f4: 'sloc', w: 4 }) }];
+        { h: 'Plant', f: (r, i) => I(`lines.${i}.plant`, { f4: 'plant', w: 4 }) }, { h: 'SLoc', f: (r, i) => I(`lines.${i}.sloc`, { f4: 'sloc', w: 4 }) }];
+      if (D.toPlant) cols.push({ h: 'Recv. plant', f: (r, i) => I(`lines.${i}.toPlant`, { f4: 'plant', w: 4 }) }, { h: 'Recv. SLoc', f: (r, i) => I(`lines.${i}.toSloc`, { f4: 'sloc', w: 4 }) });
       if (D.toSloc) cols.push({ h: 'Recv. SLoc', f: (r, i) => I(`lines.${i}.toSloc`, { f4: 'sloc', w: 4 }) });
       if (D.need?.includes('cc')) cols.push({ h: 'Cost center', f: (r, i) => I(`lines.${i}.cc`, { f4: 'costc', w: 8 }) });
       if (D.need?.includes('vendor')) cols.push({ h: 'Supplier', f: (r, i) => I(`lines.${i}.vendor`, { f4: 'vendor', w: 8 }) });
       if (D.value) cols.push({ h: 'Amount EUR (opt.)', f: (r, i) => I(`lines.${i}.amount`, { w: 8, num: 1 }) });
       if (D.need?.includes('reason')) cols.push({ h: 'Reason', f: (r, i) => I(`lines.${i}.reason`, { type: 'select', opts: { '': '', ...ORG.reasons } }) });
       cols.push({ h: D.fromK ? 'Consignment stock' : D.fromO ? 'Stock at supplier' : 'Available', r: 1, f: r => r._avail == null ? '' : qf(r._avail) });
-      return top + hdr + box(`Items · MvT ${m.mvt} ${esc(D.t)}`, grid(cols, m.lines)) + `<div class="tip">${{ '201': 'Goods issue to a cost centre: stock goes down and the value is expensed to the consumption account of the cost centre.', '551': 'Scrapping: stock goes down and the value is posted to the scrapping account. A reason is required.', '555': 'Scrapping from blocked stock.', '541': 'Provide components to a subcontractor: stock moves to "stock provided to supplier" (still yours and still valuated).', '311': 'Moves stock between storage locations in the same plant: no accounting document.', '321': 'Releases stock from quality inspection to unrestricted use: no accounting document.', '322': 'Puts unrestricted stock into quality inspection.', '343': 'Releases blocked stock.', '344': 'Blocks unrestricted stock.', '411K': 'Withdraws consignment stock into your own stock: creates a liability to the supplier (settled with MRKO).', '542': 'Takes stock back from the subcontractor.', '501': 'Receipt without a purchase order: valued at the material price (or the amount you enter).', '561': 'Initial stock entry when going live: offset to the initial entry account.' }[m.mvt] || ''} Press Enter to check availability.</div>`;
+      return top + hdr + box(`Items · MvT ${m.mvt} ${esc(D.t)}`, grid(cols, m.lines)) + `<div class="tip">${{ '201': 'Goods issue to a cost centre: stock goes down and the value is expensed to the consumption account of the cost centre.', '551': 'Scrapping: stock goes down and the value is posted to the scrapping account. A reason is required.', '555': 'Scrapping from blocked stock.', '541': 'Provide components to a subcontractor: stock moves to "stock provided to supplier" (still yours and still valuated).', '311': 'Moves stock between storage locations in the same plant: no accounting document.', '301': 'Moves stock from one plant to another in one step: the value moves from the issuing plant\'s inventory to the receiving plant\'s.', '321': 'Releases stock from quality inspection to unrestricted use: no accounting document.', '322': 'Puts unrestricted stock into quality inspection.', '343': 'Releases blocked stock.', '344': 'Blocks unrestricted stock.', '411K': 'Withdraws consignment stock into your own stock: creates a liability to the supplier (settled with MRKO).', '542': 'Takes stock back from the subcontractor.', '501': 'Receipt without a purchase order: valued at the material price (or the amount you enter).', '561': 'Initial stock entry when going live: offset to the initial entry account.' }[m.mvt] || ''} Press Enter to check availability.</div>`;
     }
-    const a01 = m.action === 'A01', a02 = m.action === 'A02', r09 = m.ref === 'R09';
+    const a01 = m.action === 'A01', a02 = m.action === 'A02', r09 = m.ref === 'R09', sto = m.action === 'A07' && m.ref === 'R01';
     return top + hdr + box('Items', grid([
       { h: 'OK', f: (r, i) => I(`lines.${i}.ok`, { type: 'check' }) }, { h: 'Line', f: (r, i) => i + 1 }, { h: 'Material', f: r => `${r.matnr || ''} <span class="muted">${esc(S.materials[r.matnr]?.desc || r.short || '')}</span>` },
-      { h: 'Qty in UnE', f: (r, i) => a01 || a02 || r09 ? I(`lines.${i}.qty`, { w: 6, num: 1 }) : qf(r.qty) }, { h: 'EUn', k: 'uom' },
-      { h: 'SLoc', f: (r, i) => r.acct === 'K' ? '<span class="muted">—</span>' : a01 || r09 ? I(`lines.${i}.sloc`, { f4: 'sloc', w: 4 }) : r.sloc },
+      { h: 'Qty in UnE', f: (r, i) => a01 || a02 || r09 || sto ? I(`lines.${i}.qty`, { w: 6, num: 1 }) : qf(r.qty) }, { h: 'EUn', k: 'uom' },
+      { h: 'SLoc', f: (r, i) => r.acct === 'K' ? '<span class="muted">—</span>' : a01 || r09 || sto ? I(`lines.${i}.sloc`, { f4: 'sloc', w: 4 }) : r.sloc },
       { h: 'Stock type', f: (r, i) => r.acct === 'K' ? `Consumption · cost ctr ${r.cc}` : a01 && r.cat !== 'K' ? I(`lines.${i}.stype`, { type: 'select', opts: ORG.stypes }) : r.cat === 'K' || r.special === 'K' ? 'Consignment (K)' : ORG.stypes[r.stype] || 'Unrestricted use' },
-      { h: 'Plant', k: 'plant' }, { h: a01 ? 'Open qty' : a02 ? 'Returnable' : r09 ? 'Open qty' : 'Reference', f: r => a01 || a02 || r09 ? qf(r.open) : r.po ? `${r.po} ${r.poItem}` : '' }, { h: 'I', f: r => r.cat || '' }, { h: 'MvT', f: () => a01 ? '101' : a02 ? '122' : r09 ? S.reservations[m.loaded].mvt : ({ '101': '102', '122': '123' }[S.matDocs[m.loaded]?.mvt] || MVT[S.matDocs[m.loaded]?.mvt]?.rev || '') }
+      { h: 'Plant', f: r => r.toPlant ? `${r.plant} → ${r.toPlant}` : r.plant }, { h: a01 || sto ? 'Open qty' : a02 ? 'Returnable' : r09 ? 'Open qty' : 'Reference', f: r => a01 || a02 || r09 || sto ? qf(r.open) : r.po ? `${r.po} ${r.poItem}` : '' }, { h: 'I', f: r => r.cat || '' }, { h: 'MvT', f: () => sto ? '351' : a01 ? '101' : a02 ? '122' : r09 ? S.reservations[m.loaded].mvt : ({ '101': '102', '122': '123' }[S.matDocs[m.loaded]?.mvt] || MVT[S.matDocs[m.loaded]?.mvt]?.rev || '') }
     ], m.lines)) + (a01 ? '<div class="tip">Change the quantity for a partial delivery. Choose <b>Quality inspection</b> as stock type if the goods must be checked before use (release later with 321).</div>' : m.action === 'A03' ? '<div class="warnbox">Posting creates a reversal document and undoes the stock (and value) change.</div>' : '');
   },
   acts: { load: c => TX.MIGO.load(c) },
@@ -1232,6 +1314,14 @@ TX.MIGO = {
     const m = c.m; if (isOther(m)) return;
     m.doc = String(m.doc).trim(); m.lines = []; m.loaded = '';
     if (!m.doc) err('Fill in all required entry fields', null, 'doc');
+    if (m.action === 'A07' && m.ref === 'R01') {
+      const P = S.pos[m.doc]; if (!P) err(`Purchase order ${m.doc} does not exist`, null, 'doc');
+      if (P.type !== 'UB') err(`Purchase order ${m.doc} is not a stock transport order: a goods issue with reference to a PO is only possible for STOs (order type UB)`, 'NOT_STO', 'doc');
+      HOOKS.grCheck.forEach(f => f(P));
+      m.lines = P.items.map(it => ({ it, t: poTotals(P, it) })).filter(x => x.t.toIssue > 0).map(({ it, t }) => ({ item: it.item, matnr: it.matnr, qty: String(t.toIssue), open: t.toIssue, uom: it.uom, sloc: (ORG.plantSlocs[P.splant] || ['101A'])[0], plant: P.splant, toPlant: it.plant, stype: 'unr', ok: false }));
+      if (!m.lines.length) err(`Document ${m.doc} does not contain any selectable items`, 'NO_ITEMS', 'doc');
+      m.loaded = m.doc; return;
+    }
     if (m.action === 'A01') {
       const P = S.pos[m.doc];
       if (!P) err(`Purchase order ${m.doc} does not exist`, null, 'doc');
@@ -1275,17 +1365,19 @@ TX.MIGO = {
       const k = `lines.${i}.`;
       if (!String(l.matnr).trim()) return;
       l.matnr = U(l.matnr); l.sloc = U(l.sloc); l.toSloc = U(l.toSloc); l.vendor = String(l.vendor || '').trim(); l.cc = String(l.cc || '').trim();
-      const M = needMat(l.matnr, '1010', k + 'matnr');
-      if (!ORG.slocs[l.sloc]) err(`Storage location ${l.sloc || '(empty)'} does not exist`, null, k + 'sloc');
-      l._avail = D.fromK ? special(`K|${l.matnr}|1010|${l.sloc}|${l.vendor}`) : D.fromO ? special(`O|${l.matnr}|1010|${l.vendor}`) : D.from ? (S.stock[stockKey(l.matnr, '1010', l.sloc)] || {})[D.from] || 0 : (S.stock[stockKey(l.matnr, '1010', l.sloc)] || {}).unr || 0;
+      l.plant = String(l.plant || '1010').trim(); l.toPlant = String(l.toPlant || '').trim();
+      const M = needMat(l.matnr, l.plant, k + 'matnr');
+      if (!slocOk(l.plant, l.sloc)) err(`Storage location ${l.sloc || '(empty)'} does not exist in plant ${l.plant}`, null, k + 'sloc');
+      l._avail = D.fromK ? special(`K|${l.matnr}|${l.plant}|${l.sloc}|${l.vendor}`) : D.fromO ? special(`O|${l.matnr}|${l.plant}|${l.vendor}`) : D.from ? (S.stock[stockKey(l.matnr, l.plant, l.sloc)] || {})[D.from] || 0 : (S.stock[stockKey(l.matnr, l.plant, l.sloc)] || {}).unr || 0;
       if (soft) return;
       const q = N(l.qty); if (!(q > 0)) err(`Line ${i + 1}: enter a quantity`, null, k + 'qty');
+      if (D.toPlant) { if (!ORG.plants[l.toPlant] || l.toPlant === l.plant) err(`Line ${i + 1}: enter a receiving plant different from ${l.plant}`, null, k + 'toPlant'); needMat(l.matnr, l.toPlant, k + 'toPlant'); if (!slocOk(l.toPlant, l.toSloc)) err(`Line ${i + 1}: enter a receiving storage location of plant ${l.toPlant}`, null, k + 'toSloc'); }
       if (D.toSloc) { if (!ORG.slocs[l.toSloc]) err(`Line ${i + 1}: enter a receiving storage location`, null, k + 'toSloc'); if (l.toSloc === l.sloc) err(`Line ${i + 1}: receiving storage location must differ from issuing`, null, k + 'toSloc'); }
       if (D.need?.includes('cc') && !ORG.costc[l.cc]) err(l.cc ? `Cost center ${l.cc} does not exist` : `Line ${i + 1}: enter a cost center (account assignment)`, 'NO_CC', k + 'cc');
       if (D.need?.includes('vendor')) needVendor(l.vendor, null, k + 'vendor');
       if (D.need?.includes('reason') && !l.reason) err(`Line ${i + 1}: enter a reason for movement`, null, k + 'reason');
       if (m.mvt === '561' || m.mvt === '501') { if (!plantData(l.matnr, '1010').price && !(N(l.amount) > 0)) err(`Line ${i + 1}: material ${l.matnr} has no price: enter an amount`, null, k + 'amount'); }
-      out.push({ matnr: l.matnr, plant: '1010', sloc: l.sloc, toSloc: l.toSloc, qty: q, cc: l.cc, vendor: l.vendor, amount: l.amount, reason: l.reason, _M: M });
+      out.push({ matnr: l.matnr, plant: l.plant, sloc: l.sloc, toPlant: l.toPlant, toSloc: l.toSloc, qty: q, cc: l.cc, vendor: l.vendor, amount: l.amount, reason: l.reason, _M: M });
     });
     if (!soft && !out.length) err('Enter at least one item', null, 'lines.0.matnr');
     return out;
@@ -1309,6 +1401,11 @@ TX.MIGO = {
       planMvt({ mvt: R.mvt, items });
       return () => { const md = postMvt({ mvt: R.mvt, date, text: m.text, items, resRef: R.num }); items.forEach(x => { const ri = R.items.find(r => r.item === x.item); ri.wd = r3(ri.wd + x.qty); }); emit('MVT_POSTED', { md, mvt: R.mvt, res: R.num, items: items.map(x => ({ matnr: x.matnr, qty: x.qty, cc: R.cc })) }); return [md, `Material document ${md} posted`]; };
     }
+    if (m.action === 'A07' && m.ref === 'R01') {
+      const P = S.pos[m.loaded];
+      const lines = sel.map(({ l, i }) => { const q = N(l.qty); if (!(q > 0)) err(`Line ${i + 1}: enter a quantity`, null, `lines.${i}.qty`); if (q > l.open + 1e-9) err(`Line ${i + 1}: quantity exceeds the quantity still to be issued ${qf(l.open)}`, null, `lines.${i}.qty`); l.sloc = U(l.sloc); if (!slocOk(P.splant, l.sloc)) err(`Storage location ${l.sloc} does not exist in plant ${P.splant}`, null, `lines.${i}.sloc`); (HOOKS.stockCheck || []).forEach(f => f(l.matnr, P.splant, l.sloc)); const have = (S.stock[stockKey(l.matnr, P.splant, l.sloc)] || {}).unr || 0; if (have + 1e-9 < q) err(`Deficit of Unrestricted use stock : ${l.matnr} ${P.splant} ${l.sloc} (${qf(r3(q - have))} ${l.uom} short)`, 'DEFICIT', `lines.${i}.qty`); return { item: l.item, qty: q, sloc: l.sloc }; });
+      return () => { const md = postSTOGI({ po: P.num, lines, date, text: m.text }); emit('STO_GI', { po: P.num, md, qty: sum(lines, x => x.qty) }); return [md, `Material document ${md} posted (goods issue 351: stock in transit to plant ${P.items[0].plant})`]; };
+    }
     if (m.action === 'A01') {
       const P = S.pos[m.loaded]; const tol = S.cfg.overTol || 0;
       const lines = sel.map(({ l, i }) => {
@@ -1317,6 +1414,7 @@ TX.MIGO = {
         if (q > l.open * (1 + tol / 100) + 1e-9) err(`PO quantity exceeded by ${qf(r3(q - l.open))} ${l.uom} : ${l.matnr} ${P.num} ${pad(l.item, 5)}`, 'QTY_EXCEEDED', `lines.${i}.qty`);
         if (l.acct !== 'K') { l.sloc = U(l.sloc); if (!ORG.slocs[l.sloc]) err(`Storage location ${l.sloc || '(empty)'} does not exist`, null, `lines.${i}.sloc`); (HOOKS.stockCheck || []).forEach(f => f(l.matnr, l.plant, l.sloc)); }
         const it = P.items.find(x => x.item === l.item);
+        if (P.type === 'UB') { if (!slocOk(it.plant, l.sloc)) err(`Storage location ${l.sloc} does not exist in receiving plant ${it.plant}`, null, `lines.${i}.sloc`); const tr = special(`T|${it.matnr}|${it.plant}`); if (tr + 1e-9 < q) err(`Not enough stock in transit for ${it.matnr} in plant ${it.plant} (${qf(tr)} ${it.uom}): post the goods issue (MIGO A07 / R01, movement type 351) in plant ${P.splant} first`, 'NO_TRANSIT', `lines.${i}.qty`); }
         if (it.cat === 'L') for (const cp of it.comps || []) { const need = r3(cp.qty * q / it.qty), have = special(`O|${cp.matnr}|${it.plant}|${P.vendor}`); if (have + 1e-9 < need) err(`Deficit of stock provided to supplier ${P.vendor} : ${cp.matnr} ${it.plant} (${qf(r3(need - have))} ${S.materials[cp.matnr].uom} short). Provide components first (MIGO A07, 541).`, 'NO_O_STOCK', `lines.${i}.qty`); }
         return { item: l.item, qty: q, sloc: l.sloc, stype: it.cat === 'K' ? 'K' : l.stype };
       });
@@ -1383,7 +1481,7 @@ function miroInit(p = {}) {
   return m;
 }
 TX.MIRO = {
-  title: c => `${c.m.park ? 'Park' : 'Enter'} Incoming ${c.m.tx === '2' ? 'Credit Memo' : 'Invoice'}: Company Code 1010${c.m.parkId ? ` · parked document ${c.m.parkId}` : ''}`,
+  title: c => `${c.m.park ? 'Park' : 'Enter'} Incoming ${({ 2: 'Credit Memo', 3: 'Subsequent Debit', 4: 'Subsequent Credit' })[c.m.tx] || 'Invoice'}: Company Code 1010${c.m.parkId ? ` · parked document ${c.m.parkId}` : ''}`,
   init: miroInit,
   onOpen: c => { if (c.m.parkId) { TX.MIRO.enter(c); const saved = c.m._items || []; c.m.items.forEach(x => { const s = saved.find(y => y.item === x.item); if (s) { x.qty = String(s.qty); x.amount = r2(s.amount).toFixed(2); } else x.sel = false; }); } },
   onInput: (c, k) => { if (k === 'tx') { c.m.loaded = ''; c.m.items = []; } },
@@ -1392,9 +1490,9 @@ TX.MIRO = {
     const m = c.m, k = miroCalc(m), P = S.pos[m.loaded];
     const light = !m.loaded ? 'n' : k.bal === 0 && k.items.length ? 'g' : 'r';
     return `<div class="balance"><span class="light ${light}"></span>Balance <span class="amt">${money(k.bal)} EUR</span><span class="muted small">· Net ${money(k.net)}${k.udc ? ` · Unpl. del. costs ${money(k.udc)}` : ''} · Tax ${money(k.tax)}${P ? ` · Supplier ${P.vendor} ${esc(vname(P.vendor))}` : ''}</span></div>` +
-      `<div class="cols">${box('Basic data', F('Transaction', 'tx', { type: 'select', opts: { 1: 'Invoice', 2: 'Credit memo' }, rr: 1 }) + F('Invoice date', 'date', { req: 1, w: 10 }) + F('Reference', 'ref', { req: 1, w: 16, ph: "Supplier's invoice no." }) + F('Posting date', 'post', { w: 10 }) +
+      `<div class="cols">${box('Basic data', F('Transaction', 'tx', { type: 'select', opts: { 1: 'Invoice', 2: 'Credit memo', 3: 'Subsequent debit', 4: 'Subsequent credit' }, rr: 1 }) + F('Invoice date', 'date', { req: 1, w: 10 }) + F('Reference', 'ref', { req: 1, w: 16, ph: "Supplier's invoice no." }) + F('Posting date', 'post', { w: 10 }) +
         F('Amount (gross)', 'gross', { req: 1, w: 12, num: 1, desc: 'EUR' }) + F('Tax code', 'tax', { f4: 'tax', w: 4, desc: ORG.tax[U(m.tax)]?.[0] || '' }) + F('Calculate tax', 'calc', { type: 'check', rr: 1 }) + (m.calc ? '' : F('Tax amount', 'taxAmt', { w: 12, num: 1 })) + F('Unpl. del. costs', 'udc', { w: 10, num: 1, desc: 'EUR (optional)' }))}
-      ${box('PO reference', F('Purchase order', 'po', { req: 1, f4: 'po', w: 12 }) + `<div class="tip">${m.tx === '2' ? 'Credit memo: items are proposed from the quantities already invoiced. The supplier credits you: the GR/IR and VAT entries are reversed.' : 'Enter the PO and press <b>Enter</b>: items are proposed from the goods receipts not yet invoiced (GR-based IV). Then type the supplier\'s gross amount and press <b>Enter</b> until the balance is <b>0.00</b> (green light). <b>Park</b> saves the invoice without posting it.'}</div>`)}</div>` +
+      ${box('PO reference', F('Purchase order', 'po', { req: 1, f4: 'po', w: 12 }) + `<div class="tip">${m.tx === '3' || m.tx === '4' ? 'Subsequent debit/credit: an extra charge (or refund) on goods already invoiced, e.g. a price increase or freight billed later. Type only the amount: the quantity does not change, GR/IR is not touched, the amount goes to stock (if still there and price control V) or to price differences.' : m.tx === '2' ? 'Credit memo: items are proposed from the quantities already invoiced. The supplier credits you: the GR/IR and VAT entries are reversed.' : 'Enter the PO and press <b>Enter</b>: items are proposed from the goods receipts not yet invoiced (GR-based IV). Then type the supplier\'s gross amount and press <b>Enter</b> until the balance is <b>0.00</b> (green light). <b>Park</b> saves the invoice without posting it.'}</div>`)}</div>` +
       box('Items', grid([
         { h: 'Sel', f: (r, i) => I(`items.${i}.sel`, { type: 'check', rr: 1 }) }, { h: 'Item', k: 'item' }, { h: 'Amount', f: (r, i) => I(`items.${i}.amount`, { w: 9, num: 1 }) }, { h: 'Quantity', f: (r, i) => I(`items.${i}.qty`, { w: 6, num: 1 }) }, { h: 'OUn', k: 'uom' },
         { h: 'Material', k: 'matnr' }, { h: 'Short text', k: 'short' }, { h: 'PO price', r: 1, f: r => money(r.unit) }, { h: 'Tax code', f: () => esc(U(m.tax)) }
@@ -1405,10 +1503,11 @@ TX.MIRO = {
     if (m.po && m.po !== m.loaded) {
       const P = S.pos[m.po];
       if (!P) err(`Purchase order ${m.po} does not exist`, null, 'po');
-      const cm = m.tx === '2';
-      const items = P.items.filter(it => it.cat !== 'K').map(it => ({ it, t: poTotals(P, it) })).filter(x => cm ? x.t.ir > 0 : x.t.toInvoice > 0)
-        .map(({ it, t }) => { const q = cm ? t.ir : t.toInvoice; return { item: it.item, qty: String(q), amount: (cm ? r2(t.irVal) : r2(q * it.price / it.per)).toFixed(2), uom: it.uom, matnr: it.matnr, short: it.short, unit: it.price / it.per, sel: true }; });
-      if (!items.length) err(cm ? `Nothing invoiced yet for purchase order ${m.po}: no credit memo possible` : `No suitable purchase order history entry found for invoice receipt (PO ${m.po}: post the goods receipt first)`, cm ? 'NO_IR' : 'NO_GR', 'po');
+      if (P.type === 'UB') err(`Purchase order ${m.po} is a stock transport order within the company code: there is no supplier invoice`, 'STO_NO_IV', 'po');
+      const cm = m.tx === '2', sub = m.tx === '3' || m.tx === '4';
+      const items = P.items.filter(it => it.cat !== 'K').map(it => ({ it, t: poTotals(P, it) })).filter(x => cm || sub ? x.t.ir > 0 : x.t.toInvoice > 0)
+        .map(({ it, t }) => { const q = cm || sub ? t.ir : t.toInvoice; return { item: it.item, qty: String(q), amount: sub ? '0.00' : (cm ? r2(t.irVal) : r2(q * it.price / it.per)).toFixed(2), uom: it.uom, matnr: it.matnr, short: it.short, unit: it.price / it.per, sel: true }; });
+      if (!items.length) err(cm || sub ? `Nothing invoiced yet for purchase order ${m.po}: no credit memo possible` : `No suitable purchase order history entry found for invoice receipt (PO ${m.po}: post the goods receipt first)`, cm ? 'NO_IR' : 'NO_GR', 'po');
       m.items = items; m.loaded = m.po;
       emit('IR_LOADED', { po: m.po });
     }
@@ -1432,7 +1531,7 @@ TX.MIRO = {
       if (m.tx === '2') { const t = poTotals(P, P.items.find(y => y.item === x.item)); if (N(x.qty) > t.ir + 1e-9) err(`Item ${x.item}: credit memo quantity ${qf(N(x.qty))} exceeds invoiced quantity ${qf(t.ir)}`, null, `items.${i}.qty`); }
     });
     if (!parking && k.bal !== 0) err(`Balance is not zero: ${money(k.bal)} EUR. The gross amount must equal items + delivery costs + tax.`, 'BALANCE', 'gross');
-    return { po: m.loaded, date: pd, docDate: d, ref: m.ref.trim(), gross: N(m.gross) || 0, taxCode: U(m.tax), tax: k.tax, udc: k.udc, cm: m.tx === '2', items: k.items.map(x => ({ item: x.item, qty: N(x.qty), amount: N(x.amount) })) };
+    return { po: m.loaded, date: pd, docDate: d, ref: m.ref.trim(), gross: N(m.gross) || 0, taxCode: U(m.tax), tax: k.tax, udc: k.udc, cm: m.tx === '2', sub: m.tx === '3' ? 'D' : m.tx === '4' ? 'C' : '', items: k.items.map(x => ({ item: x.item, qty: N(x.qty), amount: N(x.amount) })) };
   },
   simulate: c => {
     const v = TX.MIRO.validate(c);
@@ -1451,7 +1550,7 @@ TX.MIRO = {
   save: c => {
     const v = TX.MIRO.validate(c);
     const inv = postIR({ ...v, num: c.m.parkId || '' }); const I_ = S.invoices[inv];
-    emit('IR_POSTED', { inv, po: v.po, blocked: I_.blocked, qty: sum(v.items, x => x.qty), cm: v.cm, fromPark: !!c.m.parkId, udc: v.udc });
+    emit('IR_POSTED', { inv, po: v.po, blocked: I_.blocked, qty: sum(v.items, x => x.qty), cm: v.cm, sub: v.sub, fromPark: !!c.m.parkId, udc: v.udc });
     c.m = miroInit();
     msg(I_.blocked ? 'W' : 'S', I_.blocked ? `Document no. ${inv} created: blocked for payment (${I_.reasons.length} variance${I_.reasons.length > 1 ? 's' : ''}, release with MRBR)` : `Document no. ${inv} created`);
   }
@@ -1504,26 +1603,34 @@ TX.MRBR = {
 // ---------------- Reports: MMBE, MB52, MB51, ME2N, ME2M, MB5S ----------------
 TX.MMBE = {
   title: c => c.m.list ? 'Stock Overview: Company Code/Plant/Storage Location/Batch' : 'Stock Overview',
-  init: p => ({ matnr: p.matnr || '', plant: '1010', list: false, _auto: !!p.matnr }),
+  init: p => ({ matnr: p.matnr || '', plant: '', list: false, _auto: !!p.matnr }),
   onOpen: c => { if (c.m._auto) TX.MMBE.exec(c); },
   tb: c => c.m.list ? [] : [{ l: 'Execute', i: '⏵', a: c => act(TX.MMBE.exec) }],
   render: c => {
-    if (!c.m.list) return box('Database selections', F('Material', 'matnr', { req: 1, f4: 'mat', w: 18 }) + F('Plant', 'plant', { f4: 'plant', w: 6 })) + '<div class="tip">Press <b>F8</b> or <b>Enter</b> to execute.</div>';
-    const M = S.materials[c.m.matnr], pd = M.plants['1010'];
-    const sl = Object.keys(ORG.slocs).filter(s => S.stock[stockKey(M.matnr, '1010', s)]).map(s => ({ s, ...S.stock[stockKey(M.matnr, '1010', s)] }));
-    const t = { unr: sum(sl, x => x.unr), qi: sum(sl, x => x.qi), blk: sum(sl, x => x.blk) }; const oo = onOrder(M.matnr, '1010');
-    const K = specialList('K', M.matnr, '1010'), O = specialList('O', M.matnr, '1010');
-    const resv = sum(Object.values(S.reservations).flatMap(r => r.items).filter(i => i.matnr === M.matnr && !i.final), i => Math.max(0, i.qty - i.wd));
-    const row = (l, x, cls, ord = '', rs = '') => `<tr class="${cls}"><td>${l}</td><td class="r">${qf(x.unr)}</td><td class="r">${qf(x.qi)}</td><td class="r">${qf(x.blk)}</td><td class="r">${ord}</td><td class="r">${rs}</td></tr>`;
-    return box(`Material ${M.matnr} ${esc(M.desc)} · Base unit ${M.uom} · ${pd.ctrl === 'S' ? 'Standard' : 'Moving'} price ${money(pd.price)} EUR`,
-      `<div class="tw"><table class="g"><tr><th>Client / company code / plant / storage location / special stock</th><th class="r">Unrestricted use</th><th class="r">Qual. inspection</th><th class="r">Blocked</th><th class="r">On-order stock</th><th class="r">Reserved</th></tr>
-      ${row('Full', t, 'tot', qf(oo), qf(resv))}${row('1010 Riviera Trading SAS', t, 'lvl1', qf(oo), qf(resv))}${row('1010 Plant Fréjus', t, 'lvl2', qf(oo), qf(resv))}${sl.map(x => row(`${x.s} ${ORG.slocs[x.s]}`, x, 'lvl3')).join('')}
-      ${K.map(k => row(`${k.sloc} · Consignment (K) – supplier ${k.vendor} ${esc(vname(k.vendor))}`, { unr: k.q, qi: 0, blk: 0 }, 'lvl3')).join('')}
-      ${O.map(o => row(`Stock provided to supplier (O) – ${o.vendor} ${esc(vname(o.vendor))}`, { unr: o.q, qi: 0, blk: 0 }, 'lvl2')).join('')}</table></div>
-      <div class="tip"><b>On-order stock</b> = quantity in open purchase orders not yet received. <b>Consignment (K)</b> stock belongs to the supplier until you withdraw it (411 K): it is not valuated. <b>Stock provided to supplier (O)</b> is your own, valuated stock sitting at a subcontractor.</div>`);
+    if (!c.m.list) return box('Database selections', F('Material', 'matnr', { req: 1, f4: 'mat', w: 18 }) + F('Plant', 'plant', { f4: 'plant', w: 6, desc: 'empty = all plants' })) + '<div class="tip">Press <b>F8</b> or <b>Enter</b> to execute.</div>';
+    const M = S.materials[c.m.matnr];
+    const plants = Object.keys(M.plants).filter(p => !c.m.plant || p === c.m.plant);
+    const row = (l, x, cls, ord = '', rs = '') => `<tr class="${cls}"><td>${l}</td><td class="r">${qf(x.unr)}</td><td class="r">${qf(x.qi)}</td><td class="r">${qf(x.blk)}</td><td class="r">${qf(x.tr || 0)}</td><td class="r">${ord}</td><td class="r">${rs}</td></tr>`;
+    const data = plants.map(p => {
+      const sl = (ORG.plantSlocs[p] || []).filter(s => S.stock[stockKey(M.matnr, p, s)]).map(s => ({ s, ...S.stock[stockKey(M.matnr, p, s)] }));
+      const tr = special(`T|${M.matnr}|${p}`);
+      const t = { unr: sum(sl, x => x.unr), qi: sum(sl, x => x.qi), blk: sum(sl, x => x.blk), tr };
+      const oo = onOrder(M.matnr, p);
+      const resv = sum(Object.values(S.reservations).flatMap(r => r.items).filter(i => i.matnr === M.matnr && i.plant === p && !i.final), i => Math.max(0, i.qty - i.wd));
+      return { p, sl, t, oo, resv, K: specialList('K', M.matnr, p), O: specialList('O', M.matnr, p), pd: M.plants[p] };
+    });
+    const tot = { unr: sum(data, d => d.t.unr), qi: sum(data, d => d.t.qi), blk: sum(data, d => d.t.blk), tr: sum(data, d => d.t.tr) };
+    return box(`Material ${M.matnr} ${esc(M.desc)} · Base unit ${M.uom}`,
+      `<div class="tw"><table class="g"><tr><th>Client / company code / plant / storage location / special stock</th><th class="r">Unrestricted use</th><th class="r">Qual. inspection</th><th class="r">Blocked</th><th class="r">In transit</th><th class="r">On-order stock</th><th class="r">Reserved</th></tr>
+      ${row('Full', tot, 'tot', qf(sum(data, d => d.oo)), qf(sum(data, d => d.resv)))}${row('1010 Riviera Trading SAS', tot, 'lvl1', qf(sum(data, d => d.oo)), qf(sum(data, d => d.resv)))}
+      ${data.map(d => row(`${d.p} ${esc(ORG.plants[d.p])} · ${d.pd.ctrl === 'S' ? 'standard' : 'moving'} price ${money(d.pd.price)}`, d.t, 'lvl2', qf(d.oo), qf(d.resv)) + d.sl.map(x => row(`${x.s} ${esc(ORG.slocs[x.s])}`, x, 'lvl3')).join('') +
+        (d.t.tr ? row(`Stock in transit (stock transport order)`, { unr: 0, qi: 0, blk: 0, tr: d.t.tr }, 'lvl3') : '') +
+        d.K.map(k => row(`${k.sloc} · Consignment (K) – supplier ${k.vendor} ${esc(vname(k.vendor))}`, { unr: k.q, qi: 0, blk: 0 }, 'lvl3')).join('') +
+        d.O.map(o => row(`Stock provided to supplier (O) – ${o.vendor} ${esc(vname(o.vendor))}`, { unr: o.q, qi: 0, blk: 0 }, 'lvl3')).join('')).join('')}</table></div>
+      <div class="tip"><b>On-order stock</b> = quantity in open purchase orders not yet received. <b>In transit</b> = issued by the supplying plant (351) but not yet received by this plant: it is valuated in the receiving plant. <b>Consignment (K)</b> stock belongs to the supplier until you withdraw it (411 K). <b>Stock provided to supplier (O)</b> is your own, valuated stock at a subcontractor.</div>`);
   },
   enter: c => TX.MMBE.exec(c),
-  exec: c => { if (c.m.list) return; req(c, ['matnr']); c.m.matnr = U(c.m.matnr); needMat(c.m.matnr, '1010', 'matnr'); c.m.list = true; emit('STOCK_VIEW', { matnr: c.m.matnr }); },
+  exec: c => { if (c.m.list) return; req(c, ['matnr']); c.m.matnr = U(c.m.matnr); c.m.plant = String(c.m.plant || '').trim(); const M = needMat(c.m.matnr, c.m.plant || null, 'matnr'); c.m.list = true; emit('STOCK_VIEW', { matnr: c.m.matnr, plant: c.m.plant }); },
   back: c => { if (c.m.list && !c.m._auto) { c.m.list = false; return true; } }
 };
 TX.MB52 = {
@@ -1580,7 +1687,7 @@ TX.MB5S = {
   render: c => {
     if (!c.m.list) return box('Selection', F('Company code', '_cc', { ro: 1, w: 6, desc: '1010' }) + F('Only items with balance', 'only', { type: 'check' })) + '<div class="tip">The GR/IR clearing account is credited at goods receipt and debited at invoice receipt. A balance means goods received but not invoiced (or the reverse).</div>';
     const rows = Object.values(S.pos).flatMap(p => p.items.map(it => ({ ...it, po: p.num, vendor: p.vendor, t: poTotals(p, it) })))
-      .filter(r => r.cat !== 'K').map(r => ({ ...r, dq: r.t.gr - r.t.ir, dv: r2((r.t.gr - r.t.ir) * r.price / r.per) })).filter(r => !c.m.only || Math.abs(r.dq) > 1e-9);
+      .filter(r => r.cat !== 'K' && S.pos[r.po].type !== 'UB').map(r => ({ ...r, dq: r.t.gr - r.t.ir, dv: r2((r.t.gr - r.t.ir) * r.price / r.per) })).filter(r => !c.m.only || Math.abs(r.dq) > 1e-9);
     return box('GR/IR balances', grid([{ h: 'Purch. doc.', f: r => lnk('ME23N', { po: r.po }, r.po) }, { h: 'Item', k: 'item' }, { h: 'Supplier', f: r => `${r.vendor} ${esc(vname(r.vendor))}` }, { h: 'Material', k: 'matnr' }, { h: 'GR qty', r: 1, f: r => qf(r.t.gr) }, { h: 'IR qty', r: 1, f: r => qf(r.t.ir) }, { h: 'Difference qty', r: 1, f: r => qf(r.dq) }, { h: 'GR value', r: 1, f: r => money(r.t.grVal) }, { h: 'Difference value (at PO price)', r: 1, f: r => money(r.dv) }], rows, { empty: 'No GR/IR balances: everything received has been invoiced' }));
   },
   enter: c => TX.MB5S.exec(c), exec: c => { if (c.m.list) return; c.m.list = true; emit('REPORT', { tcode: 'MB5S' }); },
@@ -1688,7 +1795,7 @@ const SCEN = [
 let TP; // trainer progress
 function loadTP() { try { TP = JSON.parse(localStorage.getItem(PKEY)) || {}; } catch (e) { TP = {}; } TP.runs ??= {}; }
 const saveTP = () => { try { localStorage.setItem(PKEY, JSON.stringify(TP)); } catch (e) { /* ignore */ } };
-function startScenario(id) { TP.active = id; TP.runs[id] = { cursor: S.log.length, step: 0, ctx: {}, done: false, started: Date.now() }; saveTP(); drawTrainer(); toast('Scenario started: follow step 1'); }
+function startScenario(id) { if (TP.fresh !== false) { seed(); home(); } TP.active = id; TP.runs[id] = { cursor: S.log.length, step: 0, ctx: {}, done: false, started: Date.now() }; saveTP(); drawTrainer(); toast('Scenario started: follow step 1'); }
 function checkScenario() {
   const sc = SCEN.find(s => s.id === TP?.active); if (!sc) return;
   const run = TP.runs[sc.id]; if (!run || run.done) return;
@@ -1708,17 +1815,18 @@ function checkScenario() {
 }
 function drawTrainer() {
   const body = $('#trainerBody'); if (!body || $('#trainer').hidden) return;
+  if (TP.view === 'exam' && MMSB.examRender) { body.innerHTML = MMSB.examRender(); return; }
   const sc = SCEN.find(s => s.id === TP.view);
   if (!sc) {
-    body.innerHTML = `<p class="small">Guided exercises check your work automatically as you post documents. Pick a scenario:</p>` +
+    body.innerHTML = (MMSB.examListHtml ? MMSB.examListHtml() : '') + `<p class="small">Guided exercises check your work automatically as you post documents. Pick a scenario:</p>` +
       SCEN.map((s, i) => { const g = i < 6 ? 'Basics' : s.level.split('·')[0].trim(); const pg = i === 0 ? '' : i < 6 ? 'Basics' : i === 6 ? 'Basics' : SCEN[i - 1].level.split('·')[0].trim(); const head = g !== pg || i === 0 ? `<div class="sc-grp">${esc(g)}</div>` : ''; const r = TP.runs[s.id]; const pct = r ? Math.round(r.step / s.steps.length * 100) : 0; return `${head}<button type="button" class="sc" data-sc="${s.id}"><b>${esc(s.title)}</b>${r?.done ? ' ✅' : TP.active === s.id ? ' <span class="badge">active</span>' : ''}<small>${esc(s.level)} · ${s.steps.length} steps</small><small>${esc(s.intro)}</small><div class="prog"><i style="width:${pct}%"></i></div></button>`; }).join('') +
-      `<div class="tr-tools"><button type="button" class="btn sm" data-tr="reset">↺ Reset sandbox data</button><button type="button" class="btn sm" data-tr="export">⬇ Export data</button><label class="btn sm" style="cursor:pointer">⬆ Import<input type="file" accept="application/json" data-tr="import" hidden></label></div>
+      `<div class="tr-tools"><button type="button" class="btn sm" data-tr="snap">📸 Save snapshot</button><button type="button" class="btn sm" data-tr="restore">↩ Restore snapshot</button><button type="button" class="btn sm" data-tr="reset">↺ Reset sandbox data</button><button type="button" class="btn sm" data-tr="export">⬇ Export data</button><label class="btn sm" style="cursor:pointer">⬆ Import<input type="file" accept="application/json" data-tr="import" hidden></label></div>
       <p class="disclaimer">Free practice works too: everything you post stays in this browser. Reset restores the starting data.</p>`;
     return;
   }
   const run = TP.runs[sc.id]; const active = TP.active === sc.id && run;
   body.innerHTML = `<button type="button" class="btn sm" data-tr="list">← All scenarios</button><h3 style="margin:10px 0 2px">${esc(sc.title)}</h3><p class="small muted" style="margin:0 0 8px">${esc(sc.level)}</p><p class="small">${esc(sc.intro)}</p>
-    ${active ? '' : `<button type="button" class="btn pri" data-tr="start">▶ ${run ? 'Restart' : 'Start'} scenario</button>`}
+    ${active ? '' : `<label class="small" style="display:block;margin:6px 0"><input type="checkbox" data-tr="fresh" ${TP.fresh !== false ? 'checked' : ''}> Start with fresh data (recommended)</label><button type="button" class="btn pri" data-tr="start">▶ ${run ? 'Restart' : 'Start'} scenario</button>`}
     ${run?.done ? '<div class="done-banner">🎉 Completed! Restart it to rehearse it as a classroom demo.</div>' : ''}
     <ol class="steps">${sc.steps.map((s, i) => `<li data-n="${i + 1}" class="${run && i < run.step ? 'done' : active && i === run.step && !run.done ? 'now' : ''}"><div>${s.t}</div><button type="button" class="lnk hbtn" data-hint>Show hint</button><div class="hint">${esc(s.h)}</div></li>`).join('')}</ol>
     ${run?.ctx && Object.keys(run.ctx).length ? `<p class="small muted">Your documents: ${Object.entries(run.ctx).map(([k, v]) => `${({ pr: 'PR', po: 'PO', inv: 'Invoice', v: 'Supplier', m: 'Material' })[k] || k} <b>${esc(v)}</b>`).join(' · ')}</p>` : ''}
@@ -1753,6 +1861,8 @@ function menu(which, btn) {
   const r = btn.getBoundingClientRect(); pop.style.left = r.left + 'px'; pop.style.top = r.bottom + 'px'; pop.dataset.w = which; pop.hidden = false;
   pop.onclick = e => { const b = e.target.closest('[data-mi]'); if (b) { pop.hidden = true; items[+b.dataset.mi][1](); } };
 }
+function saveSnap() { try { localStorage.setItem('sapmm-sandbox-snap', JSON.stringify(S)); toast('📸 Snapshot saved: restore it any time from the Trainer panel'); } catch (e) { toast('Snapshot could not be saved (storage full?)'); } }
+function restoreSnap() { let raw = null; try { raw = localStorage.getItem('sapmm-sandbox-snap'); } catch (e) { /* ignore */ } if (!raw) { toast('No snapshot saved yet'); return; } resetStore(JSON.parse(raw)); ensureAll(); persist(); home(); toast('↩ Snapshot restored'); }
 function confirmReset() {
   modal('Reset sandbox data', '<p>Delete everything you have posted and restore the starting data? Scenario progress is also reset.</p>', [{ l: 'Cancel' }, { l: 'Reset', pri: 1, a: () => { seed(); TP = { runs: {}, open: TP.open }; saveTP(); home(); drawTrainer(); msg('S', 'Sandbox data reset to the starting state'); } }]);
 }
@@ -1793,10 +1903,11 @@ function init() {
     const t = e.target;
     const s = t.closest('[data-sc]'); if (s) { TP.view = s.dataset.sc; saveTP(); drawTrainer(); return; }
     if (t.closest('[data-hint]')) { const li = t.closest('li'); li.classList.toggle('showhint'); t.textContent = li.classList.contains('showhint') ? 'Hide hint' : 'Show hint'; return; }
+    const ex = t.closest('[data-ex]'); if (ex) { MMSB.examAct?.(ex.dataset.ex, ex); return; }
     const tr = t.closest('[data-tr]'); if (!tr || tr.tagName === 'INPUT') return;
-    ({ list: () => { TP.view = null; saveTP(); drawTrainer(); }, start: () => startScenario(TP.view), reset: confirmReset, export: exportData })[tr.dataset.tr]?.();
+    ({ list: () => { TP.view = null; saveTP(); drawTrainer(); }, start: () => startScenario(TP.view), reset: confirmReset, export: exportData, snap: saveSnap, restore: restoreSnap })[tr.dataset.tr]?.();
   });
-  $('#trainerBody').addEventListener('change', e => { if (e.target.dataset.tr === 'import' && e.target.files[0]) importData(e.target.files[0]); });
+  $('#trainerBody').addEventListener('change', e => { if (e.target.dataset.tr === 'import' && e.target.files[0]) importData(e.target.files[0]); if (e.target.dataset.tr === 'fresh') { TP.fresh = e.target.checked; saveTP(); } });
 
   $('#okcode').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); runOk(); } });
   document.addEventListener('keydown', e => {
@@ -1817,6 +1928,6 @@ function init() {
 }
 window.MMSB = { S, ORG, GL, MVT, mvtName, TX, F4, F4T, MENU, TITLES, SCEN, LATER, OBSOLETE, HOOKS, ACCT, $, $$, esc, pad, iso, today, dPlus, fmtD, parseD, N, r2, r3, money, qf, getPath, setPath, U, sum, SapErr, err, nextNo, persist,
   getStock, stockKey, plantData, findInfo, vname, special, addSpecial, specialList, poTotals, onOrder, createMaterial, createVendor, createInfo, createPR, createPO, createAcc, line, flipLines, PK, applyVals, postGR, planMvt, postMvt, reverseMvt, computeIR, postIR, ctrUsage, condNet,
-  emit, msg, toast, call, home, back, act, render, ensureAll, F, I, box, tabs, tabOn, grid, callAttr, lnk, req, needDate, needMat, needVendor, needOf, modal, closeModal, invStatus, get cur() { return cur; } };
+  emit, msg, toast, call, home, back, act, render, ensureAll, seed, resetStore, postSTOGI, extendMaterial, slocOk, saveTP, drawTrainer, startScenario, get TP() { return TP; }, F, I, box, tabs, tabOn, grid, callAttr, lnk, req, needDate, needMat, needVendor, needOf, modal, closeModal, invStatus, get cur() { return cur; } };
 document.addEventListener('DOMContentLoaded', init);
 })();
