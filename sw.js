@@ -1,9 +1,9 @@
 // App shell + content: network-first with cache fallback.
 // Audio: served from the 'sapmm-audio' cache when a module was downloaded for offline use (with Range support).
-const CACHE = 'sapmm-v5';
+const CACHE = 'sapmm-v6';
 const AUDIO = 'sapmm-audio';
 const CORE = ['./', 'index.html', 'styles.css', 'app.js', 'manifest.json', 'assets/icon.svg', 'assets/icon-192.png',
-  'content/course.json', 'sandbox/', 'sandbox/index.html', 'sandbox/sim.css', 'sandbox/sim.js', ...Array.from({ length: 10 }, (_, i) => `content/module-${String(i + 1).padStart(2, '0')}.json`)];
+  'content/course.json', 'sandbox/', 'sandbox/index.html', 'sandbox/sim.css', 'sandbox/sim.js', 'sandbox/mm-purch.js', 'sandbox/mm-inv.js', 'sandbox/mm-rel.js', 'sandbox/mm-liv.js', 'sandbox/mm-mrp.js', 'sandbox/mm-spro.js', 'sandbox/mm-fiori.js', ...Array.from({ length: 10 }, (_, i) => `content/module-${String(i + 1).padStart(2, '0')}.json`)];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(CORE)).then(() => self.skipWaiting()));
