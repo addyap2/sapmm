@@ -24,7 +24,7 @@ TX['/UI2/FLP'] = fiori({
     const blocked = Object.values(S.invoices).filter(i => i.blocked && i.status === 'posted').length;
     const stockVal = r2(sum(Object.values(S.materials), M => M.plants['1010'].totVal));
     const grp = (t, tiles) => `<h2 class="fl-grp">${esc(t)}</h2><div class="fl-tiles">${tiles.join('')}</div>`;
-    return shell('Home', grp('Purchasing', [tile('F_PO', 'Manage Purchase Orders', 'Track, edit, release', Object.keys(S.pos).length, 'POs', '🛒'), tile('F_PR', 'Process Purchase Requisitions', 'Convert to POs', openPR, 'open', '📋'), tile('F_INBOX', 'My Inbox', 'Approve purchasing documents', pend, 'pending', '📥'), tile('F_OVD', 'Monitor Purchase Order Items', 'Overdue deliveries', ovd, 'overdue', '⏰'), tile('ME21N', 'Create Purchase Order – Advanced', 'SAP GUI for HTML: ME21N', null, '', '🖥'), tile('ME49', 'Compare Supplier Quotations', 'SAP GUI: ME49', null, '', '⚖')]) +
+    return shell('Home', grp('Purchasing', [tile('F_PO', 'Manage Purchase Orders', 'Track, edit, release', Object.keys(S.pos).length, 'POs', '🛒'), tile('F_PR', 'Process Purchase Requisitions', 'Convert to POs', openPR, 'open', '📋'), tile('F_INBOX', 'My Inbox', 'Approve purchasing documents', pend, 'pending', '📥'), tile('F_OVD', 'Monitor Purchase Order Items', 'Overdue deliveries', ovd, 'overdue', '⏰'), tile('ME21N', 'Create Purchase Order – Advanced', 'SAP GUI for HTML: ME21N', null, '', '🖥'), tile('ME49', 'Compare Supplier Quotations', 'SAP GUI: ME49', null, '', '⚖'), tile('ML81N', 'Service Entry Sheets', 'Confirm and accept services', null, '', '🧹')]) +
       grp('Inventory', [tile('F_GR', 'Post Goods Receipt for Purchasing Document', 'Receive deliveries', null, '', '📦'), tile('F_STOCK', 'Stock – Single Material', 'Stock by location and type', null, '', '📊'), tile('F_TRF', 'Transfer Stock – In-Plant', 'Storage location / stock type', null, '', '🔁'), tile('F_MDOC', 'Material Documents Overview', 'All goods movements', Object.keys(S.matDocs).length, 'docs', '🧾'), tile('F_PIDOC', 'Manage Physical Inventory Documents', 'Count and post differences', Object.values(S.pids || {}).filter(d => d.status !== 'posted').length, 'open', '🔢'), tile('MIGO', 'Post Goods Movement', 'SAP GUI for HTML: MIGO', null, '', '🖥')]) +
       grp('Invoicing', [tile('F_INV', 'Supplier Invoices List', 'Display, release, reverse', blocked, 'blocked', '💶'), tile('MIRO', 'Create Supplier Invoice – Advanced', 'SAP GUI for HTML: MIRO', null, '', '🖥'), tile('F110', 'Manage Automatic Payments', 'SAP GUI: F110', null, '', '🏦')]) +
       grp('Planning & analytics', [tile('F_SPEND', 'Purchasing Spend', 'By supplier and material group', money(spend), 'EUR', '📈'), tile('MD04', 'Monitor Material Coverage', 'SAP GUI: MD04', null, '', '🧮'), tile('MB5L', 'Inventory Value', 'Stock value per account', money(stockVal), 'EUR', '💰')]) +
@@ -69,7 +69,7 @@ TX.F_GR = fiori({
     const m = c.m; m.po = String(m.po).trim(); const P = S.pos[m.po];
     if (!P) err(`Purchasing document ${m.po || '(empty)'} not found`, null, 'po');
     HOOKS.grCheck.forEach(f => f(P));
-    m.lines = P.items.map(it => ({ it, t: poTotals(P, it) })).filter(x => x.t.toDeliver > 0).map(({ it, t }) => ({ item: it.item, matnr: it.matnr, short: it.short, cat: it.cat, uom: it.uom, open: t.toDeliver, qty: String(t.toDeliver), sloc: it.sloc, stype: 'unr', sel: true }));
+    m.lines = P.items.map(it => ({ it, t: poTotals(P, it) })).filter(x => x.t.toDeliver > 0 && x.it.cat !== 'D').map(({ it, t }) => ({ item: it.item, matnr: it.matnr, short: it.short, cat: it.cat, uom: it.uom, open: t.toDeliver, qty: String(t.toDeliver), sloc: it.sloc || '101A', stype: 'unr', sel: true }));
     if (!m.lines.length) err(`Purchasing document ${P.num} has no open items`, 'NO_ITEMS', 'po');
     m.loaded = P.num;
   },
@@ -172,7 +172,7 @@ TX.F_SPEND = fiori({
   title: 'Purchasing Spend',
   onOpen: () => emit('REPORT', { tcode: 'F_SPEND' }),
   render: () => {
-    const items = Object.values(S.pos).flatMap(P => P.items.filter(i => !i.del && i.cat !== 'K').map(i => ({ v: P.vendor, g: S.materials[i.matnr]?.group, val: i.qty * i.price / i.per })));
+    const items = Object.values(S.pos).flatMap(P => P.items.filter(i => !i.del && i.cat !== 'K').map(i => ({ v: P.vendor, g: S.materials[i.matnr]?.group || i.group, val: i.qty * i.price / i.per })));
     const by = (k, lab) => Object.entries(items.reduce((a, x) => (a[x[k]] = (a[x[k]] || 0) + x.val, a), {})).map(([key, v]) => ({ l: lab(key), v: r2(v) })).sort((a, b) => b.v - a.v);
     const total = r2(sum(items, x => x.val));
     return shell('Purchasing Spend', `<div class="fl-kpirow"><div class="fl-kpi"><small>Total PO value</small><b>${money(total)}</b><span>EUR</span></div><div class="fl-kpi"><small>Purchase orders</small><b>${Object.keys(S.pos).length}</b><span>documents</span></div><div class="fl-kpi"><small>Suppliers used</small><b>${new Set(items.map(x => x.v)).size}</b><span>suppliers</span></div></div>
