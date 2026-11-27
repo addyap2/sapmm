@@ -272,3 +272,10 @@ body.fiori .screen{background:#f7f7f7;padding:0}
 .fl-bv{color:#6a6d70;white-space:nowrap}
 @media (max-width:640px){.fl-tile{width:calc(50% - 6px);height:150px}.fl-body{padding:12px}.fl-task{grid-template-columns:1fr}}
 .sc-grp{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:12px 0 6px}
+
+.steps li.miss{background:#fdf1f0;border-color:#efc2bd}
+.steps li.miss::before{content:"✗";background:#c0392b;color:#fff}
+.exam-clock{font-size:18px;margin:6px 0}
+.exam-score{font-size:18px;padding:10px;border-radius:4px;margin:8px 0}
+.exam-score.pass{background:#f1f9f3;border:1px solid #bfe3c9}
+.exam-score.fail{background:#fdf1f0;border:1px solid #efc2bd}
