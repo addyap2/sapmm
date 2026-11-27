@@ -466,14 +466,14 @@ const poList = (code, title, filterF, sel) => ({
   render: c => {
     if (!c.m.list) return box('Selection', sel(c)) + '<div class="tip">Leave empty for all, then press <b>F8</b>.</div>';
     const rows = Object.values(S.pos).reverse().flatMap(p => p.items.map(it => ({ ...it, po: p.num, vendor: p.vendor, docDate: p.docDate, t: poTotals(p, it) }))).filter(r => filterF(r, c.m.v.trim().toUpperCase()));
-    return box(`${title} (${rows.length})`, grid([{ h: 'Purch. doc.', f: r => lnk('ME23N', { po: r.po }, r.po) }, { h: 'Item', k: 'item' }, { h: 'Supplier', f: r => `${r.vendor} ${esc(vname(r.vendor))}` }, { h: 'Material', k: 'matnr' }, { h: 'Matl group', f: r => S.materials[r.matnr]?.group }, { h: 'Doc. date', f: r => fmtD(r.docDate) }, { h: 'PO qty', r: 1, f: r => qf(r.qty) }, { h: 'Still to deliver', r: 1, f: r => qf(Math.max(0, r.t.toDeliver)) }, { h: 'Net value', r: 1, f: r => money(r.qty * r.price / r.per) }], rows, { empty: code === 'ME2K' ? 'No account-assigned purchase orders: in this sandbox POs are for stock (no cost centre). Consumption goes through MIGO 201 instead.' : 'No entries found' }));
+    return box(`${title} (${rows.length})`, grid([{ h: 'Purch. doc.', f: r => lnk('ME23N', { po: r.po }, r.po) }, { h: 'Item', k: 'item' }, { h: 'Supplier', f: r => `${r.vendor} ${esc(vname(r.vendor))}` }, { h: 'Material', f: r => r.matnr || esc(r.short) }, { h: 'Matl group', f: r => S.materials[r.matnr]?.group || r.group }, { h: 'Acct', f: r => r.acct === 'K' ? `K ${r.cc}` : '' }, { h: 'Doc. date', f: r => fmtD(r.docDate) }, { h: 'PO qty', r: 1, f: r => qf(r.qty) }, { h: 'Still to deliver', r: 1, f: r => qf(Math.max(0, r.t.toDeliver)) }, { h: 'Net value', r: 1, f: r => money(r.qty * r.price / r.per) }], rows, { empty: code === 'ME2K' ? 'No account-assigned purchase orders yet: create a PO item with A = K and a cost center in ME21N.' : 'No entries found' }));
   },
   enter: c => TX[code].exec(c), exec: c => { if (c.m.list) return; c.m.list = true; emit('REPORT', { tcode: code }); },
   back: c => { if (c.m.list) { c.m.list = false; return true; } }
 });
 TX.ME2L = poList('ME2L', 'Supplier', (r, v) => !v || r.vendor === v, c => F('Supplier', 'v', { f4: 'vendor', w: 10 }));
-TX.ME2C = poList('ME2C', 'Material Group', (r, v) => !v || S.materials[r.matnr]?.group === v, c => F('Material group', 'v', { f4: 'mgroup', w: 8 }));
-TX.ME2K = poList('ME2K', 'Account Assignment', () => false, c => F('Cost center', 'v', { f4: 'costc', w: 10 }));
+TX.ME2C = poList('ME2C', 'Material Group', (r, v) => !v || (S.materials[r.matnr]?.group || r.group) === v, c => F('Material group', 'v', { f4: 'mgroup', w: 8 }));
+TX.ME2K = poList('ME2K', 'Account Assignment', (r, v) => r.acct === 'K' && (!v || r.cc === v), c => F('Cost center', 'v', { f4: 'costc', w: 10 }));
 
 // ======================================================================
 // Scenarios
