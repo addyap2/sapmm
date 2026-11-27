@@ -6,6 +6,7 @@ Mobile-first course site (static, no build step) for learning SAP S/4HANA MM and
 - Content: `content/course.json` + one JSON file per module
 - Audio: `audio/mXX-lYY.mp3`, generated with Kokoro (falls back to the device voice if missing)
 - Progress is saved on the device (localStorage)
+- **MM Sandbox** (`/sandbox/`): simulated SAP GUI for procure-to-pay practice: MM01/MM03, BP, ME11/ME13, ME51N/ME53N/ME5A, ME21N/ME23N, ME2N/ME2M, MIGO, MIRO/MIR4/MRBR, MMBE, MB52, MB51, MB5S, FB03. Six guided trainer scenarios with automatic step checks. Data is fictional and stored on the device; reset/export/import from the Trainer panel
 - Installable on your phone: open the site → Share → Add to Home Screen
 
 ## Deploy on Vercel

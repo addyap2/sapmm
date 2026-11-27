@@ -126,6 +126,7 @@
         <a href="#/glossary"><i>📖</i><span>Glossary<small>All key terms</small></span></a>
         <a href="#/stats"><i>📊</i><span>Progress<small>Badges & stats</small></span></a>
       </div>
+      <a class="card row" href="sandbox/"><span><strong>🖥️ MM Sandbox</strong><br><span class="small muted">Practise ME51N, ME21N, MIGO, MIRO, MMBE… in a simulated SAP GUI, with guided scenarios</span></span><span class="pill">Practise</span></a>
       <h2>Current module</h2>
       ${modCard(curMod)}
       <a class="btn ghost block" href="#/modules">See all ${mods.length} modules</a>`;
@@ -173,6 +174,7 @@
       <h2>Practise</h2>
       <a class="card row" href="#/m/${id}/cards"><span><strong>🃏 Flashcards</strong><br><span class="small muted">${mastered}/${m.flashcards.length} mastered</span></span><span class="pill">Study</span></a>
       <a class="card row" href="#/m/${id}/quiz"><span><strong>✅ Quiz</strong><br><span class="small muted">${m.quiz.length} questions · pass mark 76%</span></span><span class="pill ${q != null ? '' : 'amber'}">${q != null ? `Best ${Math.round(q / m.quiz.length * 100)}%` : 'Not taken'}</span></a>
+      ${id <= 7 ? `<a class="card row" href="sandbox/"><span><strong>🖥️ MM Sandbox</strong><br><span class="small muted">Try this module's transactions in the simulated SAP GUI</span></span><span class="pill">Practise</span></a>` : ''}
       <a class="card row" href="#/m/${id}/notes"><span><strong>🎤 Trainer notes</strong><br><span class="small muted">How to teach it, mistakes, demo script</span></span><span class="pill">Kit</span></a>
       ${'caches' in window ? `<div class="card offline" id="offline"><span style="flex:1"><strong>⬇ Offline audio</strong><br><span class="small muted" id="offMsg" aria-live="polite">Checking…</span></span><button class="btn" id="offBtn" hidden>Download</button></div>` : ''}
       <div class="actions">${id > 1 ? `<a class="btn ghost" href="#/m/${id - 1}">← Module ${id - 1}</a>` : ''}${getMod(id + 1) ? `<a class="btn ghost" href="#/m/${id + 1}">Module ${id + 1} →</a>` : ''}</div>`;

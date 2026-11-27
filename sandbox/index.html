@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MM Sandbox — SAP MM Trainer Track</title>
+<meta name="description" content="Practise SAP MM procure-to-pay in a simulated SAP GUI: ME51N, ME21N, MIGO, MIRO, MMBE and more.">
+<meta name="theme-color" content="#354a5f">
+<link rel="manifest" href="../manifest.json">
+<link rel="icon" href="../assets/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="sim.css">
+</head>
+<body>
+<div class="gui" id="gui">
+  <div class="menubar">
+    <div class="menus">
+      <button class="mb" data-menu="menu">Menu</button>
+      <button class="mb" data-menu="system">System</button>
+      <button class="mb" data-menu="help">Help</button>
+    </div>
+    <div class="mb-right">
+      <a class="mb" href="../">← Course</a>
+      <button class="mb trainer-toggle" id="trainerBtn" aria-expanded="false">🎓 Trainer</button>
+    </div>
+  </div>
+  <div class="systb">
+    <button class="tbi ok" id="okBtn" title="Enter (Enter)" aria-label="Enter">✔</button>
+    <div class="okwrap"><input id="okcode" list="tclist" placeholder="Transaction code" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Command field"></div>
+    <datalist id="tclist"></datalist>
+    <span class="sep"></span>
+    <button class="tbi" id="saveBtn" title="Save (Ctrl+S)" aria-label="Save">💾</button>
+    <button class="tbi back" id="backBtn" title="Back (F3)" aria-label="Back">◀</button>
+    <button class="tbi exit" id="exitBtn" title="Exit (Shift+F3)" aria-label="Exit">⏏</button>
+    <button class="tbi cancel" id="cancelBtn" title="Cancel (F12)" aria-label="Cancel">✖</button>
+    <span class="sep"></span>
+    <button class="tbi" id="execBtn" title="Execute (F8)" aria-label="Execute">⏵</button>
+    <button class="tbi" id="homeBtn" title="SAP Easy Access (/n)" aria-label="Easy Access">⌂</button>
+  </div>
+  <div class="titlebar" id="title">SAP Easy Access</div>
+  <div class="apptb" id="apptb"></div>
+  <main class="screen" id="screen" tabindex="-1"></main>
+  <div class="statusbar">
+    <div class="msg" id="msg" role="status" aria-live="polite"></div>
+    <div class="sysinfo"><span>S4D (1) 100</span><b id="stc">SESSION_MANAGER</b><span>TRAINEE</span></div>
+  </div>
+</div>
+
+<aside class="trainer" id="trainer" aria-label="Trainer panel" hidden>
+  <div class="tr-head"><b>🎓 Trainer</b><button class="tr-x" id="trainerClose" aria-label="Close trainer panel">✕</button></div>
+  <div class="tr-body" id="trainerBody"></div>
+</aside>
+
+<div class="menu-pop" id="menuPop" hidden></div>
+<div class="modal-bg" id="modal" hidden></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script src="sim.js"></script>
+</body>
+</html>
